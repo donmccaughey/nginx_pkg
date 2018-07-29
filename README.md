@@ -1,0 +1,14 @@
+nginx 1.15.2 for macOS
+======================
+
+This project builds a signed macOS installer package for [`nginx`][1], a
+widely used and capable HTTP and proxy server.
+
+[1]: http://nginx.org "nginx"
+
+## License
+
+The installer and related scripts are copyright (c) 2018 Don McCaughey.
+`nginx` and the installer are distributed under a BSD-style license.
+See the LICENSE file for details.
+

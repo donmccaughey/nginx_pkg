@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<installer-gui-script minSpecVersion="1">
+    <title>nginx {{version}}</title>
+
+    <background alignment="center" file="background.png" mime-type="image/png" scaling="tofit"/>
+    <welcome file="welcome.html" mime-type="text/html"/>
+    <license file="license.html" mime-type="text/html"/>
+
+    <options customize="never"/>
+
+    <choices-outline>
+        <line choice="cc.donm.pkg.nginx"/>
+    </choices-outline>
+
+    <choice id="cc.donm.pkg.nginx">
+        <pkg-ref id="cc.donm.pkg.nginx"/>
+    </choice>
+    <pkg-ref id="cc.donm.pkg.nginx">nginx.pkg</pkg-ref>
+
+</installer-gui-script>
