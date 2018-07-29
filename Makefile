@@ -92,7 +92,11 @@ nginx_installed_dirs := \
 $(nginx_installed_files) $(nginx_installed_dirs) : $(TMP)/nginx/installed.stamp.txt
 	@:
 
-$(TMP)/nginx/install/usr/local/nginx/man/man8 :
+nginx_extra_files := $(TMP)/nginx/install/usr/local/nginx/man/man8/nginx.8
+
+nginx_extra_dirs := $(sort $(dir $(nginx_extra_files)))
+
+$(nginx_extra_dirs) :
 	mkdir -p $@
 
 $(TMP)/nginx/install/usr/local/nginx/man/man8/nginx.8 : \
@@ -105,12 +109,14 @@ $(TMP)/nginx/install/usr/local/nginx/man/man8/nginx.8 : \
 
 # nginx
 
-nginx_pkg_dirs := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,$(nginx_installed_dirs))
+nginx_pkg_dirs := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
+		$(nginx_installed_dirs) $(nginx_extra_dirs))
 	
 $(nginx_pkg_dirs) : $(TMP)/pkg/% : $(TMP)/nginx/install/%
 	mkdir -p $@
 
-nginx_pkg_files := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,$(nginx_installed_files))
+nginx_pkg_files := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
+		$(nginx_installed_files) $(nginx_extra_files))
 
 $(nginx_pkg_files) : $(TMP)/pkg/% : $(TMP)/nginx/install/% | $$(dir $$@)
 	cp $< $@
