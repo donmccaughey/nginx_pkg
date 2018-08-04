@@ -152,7 +152,10 @@ $(pkg_files) : $(TMP)/pkg/% : ./install/% | $$(dir $$@)
 
 # uninstall
 
-$(TMP)/pkg/usr/local/nginx/sbin/uninstall-nginx : \
+$(TMP)/pkg/usr/local/nginx/bin :
+	mkdir -p $@
+
+$(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx : \
 		./uninstall-nginx \
 		$(nginx_pkg_files) \
 		$(nginx_pkg_conf) \
@@ -171,7 +174,7 @@ $(TMP)/pkg/usr/local/nginx/sbin/uninstall-nginx : \
 $(TMP)/nginx.pkg : \
 		$(nginx_pkg_dirs) $(nginx_pkg_files) \
 		$(pkg_dirs) $(pkg_files) \
-		$(TMP)/pkg/usr/local/nginx/sbin/uninstall-nginx
+		$(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx
 	pkgbuild \
 		--root $(TMP)/pkg \
 		--identifier cc.donm.pkg.nginx \
