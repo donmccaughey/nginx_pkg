@@ -74,8 +74,6 @@ nginx_installed_files := \
 	$(TMP)/nginx/install/usr/local/nginx/conf/koi-win \
 	$(TMP)/nginx/install/usr/local/nginx/conf/mime.types \
 	$(TMP)/nginx/install/usr/local/nginx/conf/mime.types.default \
-	$(TMP)/nginx/install/usr/local/nginx/conf/nginx.conf \
-	$(TMP)/nginx/install/usr/local/nginx/conf/nginx.conf.default \
 	$(TMP)/nginx/install/usr/local/nginx/conf/scgi_params \
 	$(TMP)/nginx/install/usr/local/nginx/conf/scgi_params.default \
 	$(TMP)/nginx/install/usr/local/nginx/conf/uwsgi_params \
@@ -85,11 +83,17 @@ nginx_installed_files := \
 	$(TMP)/nginx/install/usr/local/nginx/html/index.html \
 	$(TMP)/nginx/install/usr/local/nginx/sbin/nginx
 
+nginx_installed_conf :=  \
+	$(TMP)/nginx/install/usr/local/nginx/conf/nginx.conf \
+	$(TMP)/nginx/install/usr/local/nginx/conf/nginx.conf.default
+
 nginx_installed_dirs := \
 	$(TMP)/nginx/install/usr/local/nginx/logs \
-	$(sort $(dir $(nginx_installed_files)))
+	$(sort $(dir $(nginx_installed_files) $(nginx_installed_conf)))
 
-$(nginx_installed_files) $(nginx_installed_dirs) : $(TMP)/nginx/installed.stamp.txt
+$(nginx_installed_files) \
+$(nginx_installed_conf) \
+$(nginx_installed_dirs) : $(TMP)/nginx/installed.stamp.txt
 	@:
 
 nginx_extra_files := $(TMP)/nginx/install/usr/local/nginx/man/man8/nginx.8
@@ -121,6 +125,15 @@ nginx_pkg_files := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
 $(nginx_pkg_files) : $(TMP)/pkg/% : $(TMP)/nginx/install/% | $$(dir $$@)
 	cp $< $@
 
+nginx_pkg_conf := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
+		$(nginx_installed_conf))
+
+$(nginx_pkg_conf) : $(TMP)/pkg/% : $(TMP)/nginx/install/% | $$(dir $$@)
+	sed \
+		-e '1s/^/daemon off;/' \
+		-e '1G' \
+		$< > $@
+
 # install
 
 install_dirs := $(shell find ./install -type d \! -path ./install \! -name .DS_Store)
@@ -142,6 +155,7 @@ $(pkg_files) : $(TMP)/pkg/% : ./install/% | $$(dir $$@)
 $(TMP)/pkg/usr/local/nginx/sbin/uninstall-nginx : \
 		./uninstall-nginx \
 		$(nginx_pkg_files) \
+		$(nginx_pkg_conf) \
 		$(pkg_files) \
 		| $$(dir $$@)
 	cp $< $@
@@ -208,11 +222,11 @@ $(TMP)/build-report.txt : | $$(dir $$@)
 $(TMP)/distribution.xml \
 $(TMP)/resources/welcome.html : $(TMP)/% : % | $$(dir $$@)
 	sed \
-		-e s/{{date}}/$(date)/g \
-		-e s/{{macos}}/$(macos)/g \
-		-e s/{{revision}}/$(revision)/g \
-		-e s/{{version}}/$(version)/g \
-		-e s/{{xcode}}/$(xcode)/g \
+		-e 's/{{date}}/$(date)/g' \
+		-e 's/{{macos}}/$(macos)/g'\
+		-e 's/{{revision}}/$(revision)/g'\
+		-e 's/{{version}}/$(version)/g'\
+		-e 's/{{xcode}}/$(xcode)/g'\
 		$< > $@
 
 $(TMP)/resources/background.png \
