@@ -1,0 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+
+if [ -f /Library/LaunchDaemons/nginx.plist ]
+then
+    printf 'stopping nginx\n'
+    launchctl unload -wF /Library/LaunchDaemons/nginx.plist
+fi
+

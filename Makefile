@@ -171,14 +171,18 @@ $(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx : \
 
 # package
 
+script_files := $(shell find ./scripts -type f \! -name .DS_Store)
+
 $(TMP)/nginx.pkg : \
 		$(nginx_pkg_dirs) $(nginx_pkg_files) \
 		$(pkg_dirs) $(pkg_files) \
-		$(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx
+		$(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx \
+		$(script_files)
 	pkgbuild \
 		--root $(TMP)/pkg \
 		--identifier cc.donm.pkg.nginx \
 		--ownership recommended \
+		--scripts ./scripts \
 		--version $(version) \
 		$@
 

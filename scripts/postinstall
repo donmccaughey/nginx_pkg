@@ -1,0 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+
+printf 'testing nginx configuration\n'
+/usr/local/nginx/sbin/nginx -t
+
+printf 'starting nginx\n'
+launchctl load -wF /Library/LaunchDaemons/nginx.plist
+
