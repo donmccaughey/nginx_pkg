@@ -1,6 +1,7 @@
 TMP ?= $(abspath tmp)
 
 version := 1.15.2
+pcre_version := 8.42
 revision := 1
 
 
@@ -167,6 +168,7 @@ $(pkg_nginx_html) : $(TMP)/pkg/% : $(TMP)/nginx/install/% ./footer.html | $$(dir
 		-e "\$${ H $$N x $$N }" \
 		$< > $@
 	sed \
+		-e 's/{{pcre_version}}/$(pcre_version)/g' \
 		-e 's/{{revision}}/$(revision)/g'\
 		-e 's/{{version}}/$(version)/g'\
 		-i '' $@
@@ -257,6 +259,7 @@ nginx-$(version).pkg : \
 $(TMP)/build-report.txt : | $$(dir $$@)
 	printf 'Build Date: %s\n' "$(date)" > $@
 	printf 'Software Version: %s\n' "$(version)" >> $@
+	printf 'PCRE Library Version: %s\n' "$(pcre_version)" >> $@
 	printf 'Installer Revision: %s\n' "$(revision)" >> $@
 	printf 'macOS Version: %s\n' "$(macos)" >> $@
 	printf 'Xcode Version: %s\n' "$(xcode)" >> $@
@@ -268,10 +271,11 @@ $(TMP)/distribution.xml \
 $(TMP)/resources/welcome.html : $(TMP)/% : % | $$(dir $$@)
 	sed \
 		-e 's/{{date}}/$(date)/g' \
-		-e 's/{{macos}}/$(macos)/g'\
-		-e 's/{{revision}}/$(revision)/g'\
-		-e 's/{{version}}/$(version)/g'\
-		-e 's/{{xcode}}/$(xcode)/g'\
+		-e 's/{{macos}}/$(macos)/g' \
+		-e 's/{{pcre_version}}/$(pcre_version)/g' \
+		-e 's/{{revision}}/$(revision)/g' \
+		-e 's/{{version}}/$(version)/g' \
+		-e 's/{{xcode}}/$(xcode)/g' \
 		$< > $@
 
 $(TMP)/resources/background.png \
