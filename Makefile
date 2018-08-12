@@ -18,6 +18,21 @@ clean :
 	-rm -rf $(TMP)
 
 
+##### pcre dist ##########
+
+pcre_dist := $(shell find ./pcre -type f \! -name .DS_Store)
+
+pcre_files := $(patsubst ./pcre/%,$(TMP)/pcre/%,$(pcre_dist))
+
+$(pcre_files): $(TMP)/pcre/% : ./pcre/% | $$(dir $$@)
+	cp $< $@
+
+pcre_dirs := $(sort $(dir $(pcre_files)))
+
+$(pcre_dirs) :
+	mkdir -p $@
+
+
 ##### nginx dist ##########
 
 # configure
@@ -25,15 +40,20 @@ clean :
 $(TMP)/nginx/build :
 	mkdir -p $@
 
-$(TMP)/nginx/configured.stamp.txt : ./nginx/configure | $(TMP)/nginx/build
+$(TMP)/nginx/configured.stamp.txt : \
+		./nginx/configure \
+		$(pcre_files) \
+		| $(TMP)/nginx/build
 	cd ./nginx && ./configure \
 		--builddir=$(TMP)/nginx/build \
-		--without-http_rewrite_module
+		--with-pcre=$(TMP)/pcre \
+		--with-pcre-jit
 	date > $@
 
 ./nginx/Makefile \
 $(TMP)/nginx/build/Makefile : $(TMP)/nginx/configured.stamp.txt
 	@:
+
 
 # build
 
