@@ -80,19 +80,22 @@ nginx_installed_files := \
 	$(TMP)/nginx/install/usr/local/nginx/conf/uwsgi_params.default \
 	$(TMP)/nginx/install/usr/local/nginx/conf/win-utf \
 	$(TMP)/nginx/install/usr/local/nginx/html/50x.html \
-	$(TMP)/nginx/install/usr/local/nginx/html/index.html \
 	$(TMP)/nginx/install/usr/local/nginx/sbin/nginx
 
-nginx_installed_conf :=  \
+nginx_installed_conf := \
 	$(TMP)/nginx/install/usr/local/nginx/conf/nginx.conf \
 	$(TMP)/nginx/install/usr/local/nginx/conf/nginx.conf.default
 
+nginx_installed_html := \
+	$(TMP)/nginx/install/usr/local/nginx/html/index.html
+
 nginx_installed_dirs := \
 	$(TMP)/nginx/install/usr/local/nginx/logs \
-	$(sort $(dir $(nginx_installed_files) $(nginx_installed_conf)))
+	$(sort $(dir $(nginx_installed_files) $(nginx_installed_conf) $(nginx_installed_html)))
 
 $(nginx_installed_files) \
 $(nginx_installed_conf) \
+$(nginx_installed_html) \
 $(nginx_installed_dirs) : $(TMP)/nginx/installed.stamp.txt
 	@:
 
@@ -113,41 +116,55 @@ $(TMP)/nginx/install/usr/local/nginx/man/man8/nginx.8 : \
 
 # nginx
 
-nginx_pkg_dirs := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
+pkg_nginx_dirs := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
 		$(nginx_installed_dirs) $(nginx_extra_dirs))
-	
-$(nginx_pkg_dirs) : $(TMP)/pkg/% : $(TMP)/nginx/install/%
+
+$(pkg_nginx_dirs) : $(TMP)/pkg/% : $(TMP)/nginx/install/%
 	mkdir -p $@
 
-nginx_pkg_files := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
+pkg_nginx_files := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
 		$(nginx_installed_files) $(nginx_extra_files))
 
-$(nginx_pkg_files) : $(TMP)/pkg/% : $(TMP)/nginx/install/% | $$(dir $$@)
+$(pkg_nginx_files) : $(TMP)/pkg/% : $(TMP)/nginx/install/% | $$(dir $$@)
 	cp $< $@
 
-nginx_pkg_conf := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
+pkg_nginx_conf := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
 		$(nginx_installed_conf))
 
-$(nginx_pkg_conf) : $(TMP)/pkg/% : $(TMP)/nginx/install/% | $$(dir $$@)
+$(pkg_nginx_conf) : $(TMP)/pkg/% : $(TMP)/nginx/install/% | $$(dir $$@)
 	sed \
 		-e '1s/^/daemon off;/' \
 		-e '1G' \
 		$< > $@
 
+pkg_nginx_html := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
+		$(nginx_installed_html))
+
+$(pkg_nginx_html) : $(TMP)/pkg/% : $(TMP)/nginx/install/% ./footer.html | $$(dir $$@)
+	N=$$'\n'; \
+	sed \
+		-e "/<\/body>/{ x $$N r ./footer.html$$N }" \
+		-e "\$${ H $$N x $$N }" \
+		$< > $@
+	sed \
+		-e 's/{{revision}}/$(revision)/g'\
+		-e 's/{{version}}/$(version)/g'\
+		-i '' $@
+
 # install
 
 install_dirs := $(shell find ./install -type d \! -path ./install \! -name .DS_Store)
 
-pkg_dirs := $(patsubst ./install/%,$(TMP)/pkg/%,$(install_dirs))
+pkg_install_dirs := $(patsubst ./install/%,$(TMP)/pkg/%,$(install_dirs))
 
-$(pkg_dirs) : $(TMP)/pkg/% : ./install/%
+$(pkg_install_dirs) : $(TMP)/pkg/% : | ./install/%
 	mkdir -p $@
 
 install_files := $(shell find ./install -type f \! -name .DS_Store)
 
-pkg_files := $(patsubst ./install/%,$(TMP)/pkg/%,$(install_files))
+pkg_install_files := $(patsubst ./install/%,$(TMP)/pkg/%,$(install_files))
 
-$(pkg_files) : $(TMP)/pkg/% : ./install/% | $$(dir $$@)
+$(pkg_install_files) : $(TMP)/pkg/% : ./install/% | $$(dir $$@)
 	cp $< $@
 
 # uninstall
@@ -157,9 +174,10 @@ $(TMP)/pkg/usr/local/nginx/bin :
 
 $(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx : \
 		./uninstall-nginx \
-		$(nginx_pkg_files) \
-		$(nginx_pkg_conf) \
-		$(pkg_files) \
+		$(pkg_nginx_files) \
+		$(pkg_nginx_conf) \
+		$(pkg_nginx_html) \
+		$(pkg_install_files) \
 		| $$(dir $$@)
 	cp $< $@
 	cd $(TMP)/pkg && find . -type f \
@@ -174,8 +192,8 @@ $(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx : \
 script_files := $(shell find ./scripts -type f \! -name .DS_Store)
 
 $(TMP)/nginx.pkg : \
-		$(nginx_pkg_dirs) $(nginx_pkg_files) \
-		$(pkg_dirs) $(pkg_files) \
+		$(pkg_nginx_dirs) $(pkg_nginx_files) $(pkg_nginx_conf) $(pkg_nginx_html) \
+		$(pkg_install_dirs) $(pkg_install_files) \
 		$(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx \
 		$(script_files)
 	pkgbuild \
