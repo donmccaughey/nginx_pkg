@@ -237,6 +237,11 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
         }
     }
 
+    if (!ngx_queue_empty(&ngx_posted_next_events)) {
+        ngx_event_move_posted_next(cycle);
+        timer = 0;
+    }
+
     delta = ngx_current_msec;
 
     (void) ngx_process_events(cycle, timer, flags);
@@ -252,9 +257,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
         ngx_shmtx_unlock(&ngx_accept_mutex);
     }
 
-    if (delta) {
-        ngx_event_expire_timers();
-    }
+    ngx_event_expire_timers();
 
     ngx_event_process_posted(cycle, &ngx_posted_events);
 }
@@ -313,7 +316,7 @@ ngx_handle_read_event(ngx_event_t *rev, ngx_uint_t flags)
             return NGX_OK;
         }
 
-        if (rev->oneshot && !rev->ready) {
+        if (rev->oneshot && rev->ready) {
             if (ngx_del_event(rev, NGX_READ_EVENT, 0) == NGX_ERROR) {
                 return NGX_ERROR;
             }
@@ -639,6 +642,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 #endif
 
     ngx_queue_init(&ngx_posted_accept_events);
+    ngx_queue_init(&ngx_posted_next_events);
     ngx_queue_init(&ngx_posted_events);
 
     if (ngx_event_timer_init(cycle->log) == NGX_ERROR) {

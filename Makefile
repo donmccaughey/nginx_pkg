@@ -1,6 +1,6 @@
 TMP ?= $(abspath tmp)
 
-version := 1.15.2
+version := 1.20.1
 pcre_version := 8.45
 revision := 1
 

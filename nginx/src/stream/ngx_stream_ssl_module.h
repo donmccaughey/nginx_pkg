@@ -34,6 +34,9 @@ typedef struct {
     ngx_array_t     *certificates;
     ngx_array_t     *certificate_keys;
 
+    ngx_array_t     *certificate_values;
+    ngx_array_t     *certificate_key_values;
+
     ngx_str_t        dhparam;
     ngx_str_t        ecdh_curve;
     ngx_str_t        client_certificate;
@@ -43,6 +46,7 @@ typedef struct {
     ngx_str_t        ciphers;
 
     ngx_array_t     *passwords;
+    ngx_array_t     *conf_commands;
 
     ngx_shm_zone_t  *shm_zone;
 

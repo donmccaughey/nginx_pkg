@@ -1,4 +1,4 @@
-nginx 1.15.2 for macOS
+nginx 1.20.1 for macOS
 ======================
 
 This project builds a signed macOS installer package for [`nginx`][1], a
