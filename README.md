@@ -8,7 +8,7 @@ widely used and capable HTTP and proxy server.
 
 ## License
 
-The installer and related scripts are copyright (c) 2018 Don McCaughey.
+The installer and related scripts are copyright (c) 2021 Don McCaughey.
 `nginx` and the installer are distributed under a BSD-style license.
 See the LICENSE file for details.
 

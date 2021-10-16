@@ -1,7 +1,7 @@
 TMP ?= $(abspath tmp)
 
 version := 1.15.2
-pcre_version := 8.42
+pcre_version := 8.45
 revision := 1
 
 
