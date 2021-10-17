@@ -3,7 +3,7 @@ TMP ?= $(abspath tmp)
 version := 1.20.1
 pcre_version := 8.45
 revision := 1
-
+archs := arm64 x86_64
 
 .SECONDEXPANSION :
 
@@ -17,6 +17,15 @@ clean :
 	-rm -f nginx-*.pkg
 	-rm -f nginx/Makefile
 	-rm -rf $(TMP)
+
+
+##### compilation flags ##########
+
+arch_flags = $(patsubst %,-arch %,$(archs))
+
+CFLAGS += $(arch_flags)
+
+LINK := $(CC) $(arch_flags) $(LDFLAGS)
 
 
 ##### pcre dist ##########
@@ -67,7 +76,7 @@ $(TMP)/nginx/built.stamp.txt : \
 		./nginx/Makefile \
 		$(TMP)/nginx/build/Makefile \
 		$(nginx_files)
-	cd ./nginx && $(MAKE)
+	cd ./nginx && $(MAKE) CFLAGS='$(CFLAGS)' LINK='$(LINK)'
 	date > $@
 
 nginx_built_files := \
@@ -83,7 +92,12 @@ $(TMP)/nginx/install :
 	mkdir -p $@
 
 $(TMP)/nginx/installed.stamp.txt : $(nginx_built_files) | $(TMP)/nginx/install
-	cd ./nginx && $(MAKE) DESTDIR=$(TMP)/nginx/install install
+	cd ./nginx \
+		&& $(MAKE) \
+			DESTDIR=$(TMP)/nginx/install \
+			CFLAGS='$(CFLAGS)' \
+			LINK='$(LINK)' \
+			install
 	date > $@
 
 nginx_installed_files := \
