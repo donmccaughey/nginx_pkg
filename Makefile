@@ -243,13 +243,14 @@ $(TMP)/nginx.pkg : \
 
 ##### product ##########
 
+arch_list := $(shell printf '%s' "$(archs)" | sed "s/ / and /g" )
 date := $(shell date '+%Y-%m-%d')
-macos:=$(shell \
+macos := $(shell \
 	system_profiler -detailLevel mini SPSoftwareDataType \
 	| grep 'System Version:' \
 	| awk -F ' ' '{print $$4}' \
 	)
-xcode:=$(shell \
+xcode := $(shell \
 	system_profiler -detailLevel mini SPDeveloperToolsDataType \
 	| grep 'Version:' \
 	| awk -F ' ' '{print $$2}' \
@@ -274,6 +275,7 @@ $(TMP)/build-report.txt : | $$(dir $$@)
 	printf 'Build Date: %s\n' "$(date)" > $@
 	printf 'Software Version: %s\n' "$(version)" >> $@
 	printf 'PCRE Library Version: %s\n' "$(pcre_version)" >> $@
+	printf 'Architectures: %s\n' "$(arch_list)" >> $@
 	printf 'Installer Revision: %s\n' "$(revision)" >> $@
 	printf 'macOS Version: %s\n' "$(macos)" >> $@
 	printf 'Xcode Version: %s\n' "$(xcode)" >> $@
@@ -284,6 +286,7 @@ $(TMP)/build-report.txt : | $$(dir $$@)
 $(TMP)/distribution.xml \
 $(TMP)/resources/welcome.html : $(TMP)/% : % | $$(dir $$@)
 	sed \
+		-e 's/{{arch_list}}/$(arch_list)/g' \
 		-e 's/{{date}}/$(date)/g' \
 		-e 's/{{macos}}/$(macos)/g' \
 		-e 's/{{pcre_version}}/$(pcre_version)/g' \
