@@ -4,6 +4,8 @@ version := 1.20.1
 pcre_version := 8.45
 revision := 1
 archs := arm64 x86_64
+signing_identity := Developer ID Installer: Donald McCaughey
+
 
 .SECONDEXPANSION :
 
@@ -269,7 +271,7 @@ nginx-$(version).pkg : \
 		--resources $(TMP)/resources \
 		--package-path $(TMP) \
 		--version v$(version)-r$(revision) \
-		--sign 'Donald McCaughey' \
+		--sign '$(signing_identity)' \
 		$@
 
 $(TMP)/build-report.txt : | $$(dir $$@)
