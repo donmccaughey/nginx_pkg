@@ -50,19 +50,23 @@ To build and sign the executable and installer, run:
         $ make [APP_SIGNING_ID="<cert name 1>"] [INSTALLER_SIGNING_ID="<cert name 2>" [TMP="<build dir>"]
 
 Intermediate files are generated in the temp directory; the signed installer 
-package is written into the project root with the name `nginx-1.20.1.pkg`.  To 
-remove all generated files (including the signed installer), run:
-
-        $ make clean
-
+package is written into the project root with the name `nginx-1.20.1.pkg`.  
 To notarize the signed installer package, run:
 
         $ make notarize [NOTARIZATION_KEYCHAIN_PROFILE="<profile name>"] [TMP="<build dir>"]
 
-This will submit the installer package for notarization.  Check the file 
-`$(TMP)/notarization-log.json` for detailed information if notarization fails.
-The notarized and stapled installer package is written into the project root
-with the name `nginx-1.20.1-notarized.pkg`.
+This will submit the installer package for notarization and staple it on 
+success.  Check the file `$(TMP)/notarization-log.json` for detailed 
+information if notarization fails.  The signed installer is stapled in place
+if notarization succeeds.  Use the command:
+
+        $ xcrun stapler validate --verbose nginx-1.20.1.pkg
+
+to check the notarization state of the installer package.
+
+To remove all generated files (including the signed installer), run:
+
+        $ make clean
 
 ## Signing and Notarizing Credentials
 

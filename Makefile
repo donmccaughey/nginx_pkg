@@ -12,12 +12,12 @@ archs := arm64 x86_64
 .SECONDEXPANSION :
 
 
-.PHONY : all
-all : nginx-$(version).pkg
+.PHONY : signed-package
+signed-package : nginx-$(version).pkg
 
 
 .PHONY : notarize
-notarize : nginx-$(version)-notarized.pkg
+notarize : $(TMP)/stapled.stamp.txt
 
 
 .PHONY : clean
@@ -355,7 +355,6 @@ $(TMP)/notarized.stamp.txt : $(TMP)/notarization-log.json | $$(dir $$@)
 		&& false \
 	)
 
-nginx-$(version)-notarized.pkg : nginx-$(version).pkg $(TMP)/notarized.stamp.txt
-	cp $< $@
-	xcrun stapler staple $@
+$(TMP)/stapled.stamp.txt : nginx-$(version).pkg $(TMP)/notarized.stamp.txt
+	xcrun stapler staple $< && date > $@
 
