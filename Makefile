@@ -1,4 +1,6 @@
-SIGNING_ID ?= Developer ID Installer: Donald McCaughey
+APP_SIGNING_ID ?= Developer ID Application: Donald McCaughey
+INSTALLER_SIGNING_ID ?= Developer ID Installer: Donald McCaughey
+NOTARIZATION_KEYCHAIN_PROFILE ?= Donald McCaughey
 TMP ?= $(abspath tmp)
 
 version := 1.20.1
@@ -12,6 +14,10 @@ archs := arm64 x86_64
 
 .PHONY : all
 all : nginx-$(version).pkg
+
+
+.PHONY : notarize
+notarize : nginx-$(version)-notarized.pkg
 
 
 .PHONY : clean
@@ -205,6 +211,19 @@ pkg_install_files := $(patsubst ./install/%,$(TMP)/pkg/%,$(install_files))
 $(pkg_install_files) : $(TMP)/pkg/% : ./install/% | $$(dir $$@)
 	cp $< $@
 
+# sign executable
+
+$(TMP)/signed.stamp.txt : $(TMP)/pkg/usr/local/nginx/sbin/nginx | $$(dir $$@)
+	( \
+		xcrun codesign \
+			--sign "$(APP_SIGNING_ID)" \
+			--options runtime \
+			$< \
+		&& date > $@ \
+	) || ( \
+		false \
+	)
+
 # uninstall
 
 $(TMP)/pkg/usr/local/nginx/bin :
@@ -233,7 +252,8 @@ $(TMP)/nginx.pkg : \
 		$(pkg_nginx_dirs) $(pkg_nginx_files) $(pkg_nginx_conf) $(pkg_nginx_html) \
 		$(pkg_install_dirs) $(pkg_install_files) \
 		$(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx \
-		$(script_files)
+		$(script_files) \
+		$(TMP)/signed.stamp.txt
 	pkgbuild \
 		--root $(TMP)/pkg \
 		--identifier cc.donm.pkg.nginx \
@@ -271,7 +291,7 @@ nginx-$(version).pkg : \
 		--resources $(TMP)/resources \
 		--package-path $(TMP) \
 		--version v$(version)-r$(revision) \
-		--sign '$(SIGNING_ID)' \
+		--sign '$(INSTALLER_SIGNING_ID)' \
 		$@
 
 $(TMP)/build-report.txt : | $$(dir $$@)
@@ -306,4 +326,36 @@ $(TMP)/resources/license.html : $(TMP)/% : % | $$(dir $$@)
 $(TMP) \
 $(TMP)/resources : 
 	mkdir -p $@
+
+
+##### notarization ##########
+
+$(TMP)/submit-log.json : nginx-$(version).pkg | $$(dir $$@)
+	xcrun notarytool submit $< \
+		--keychain-profile "$(NOTARIZATION_KEYCHAIN_PROFILE)" \
+		--output-format json \
+		--wait \
+		> $@
+
+$(TMP)/submission-id.txt : $(TMP)/submit-log.json | $$(dir $$@)
+	jq --raw-output '.id' < $< > $@
+
+$(TMP)/notarization-log.json : $(TMP)/submission-id.txt | $$(dir $$@)
+	xcrun notarytool log "$$(<$<)" \
+		--keychain-profile "$(NOTARIZATION_KEYCHAIN_PROFILE)" \
+		$@
+
+$(TMP)/notarized.stamp.txt : $(TMP)/notarization-log.json | $$(dir $$@)
+	@( \
+		test "$$(jq --raw-output '.status' < $<)" = "Accepted" \
+		&& date > $@ \
+	) || ( \
+		printf 'Status: %s\n' "$$(jq --raw-output '.status' < $<)" \
+		&& printf 'Summary: %s\n' "$$(jq --raw-output '.statusSummary' < $<)" \
+		&& false \
+	)
+
+nginx-$(version)-notarized.pkg : nginx-$(version).pkg $(TMP)/notarized.stamp.txt
+	cp $< $@
+	xcrun stapler staple $@
 
