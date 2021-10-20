@@ -37,7 +37,7 @@ The following makefile variables can be set from the command line:
 
 [3]: https://github.com/donmccaughey/nginx_pkg/blob/master/Makefile
 [4]: https://developer.apple.com/account/resources/certificates/list
-[5]: x-man-page://1/notarytool
+[5]: https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/customizing_the_notarization_workflow
 
 To build the installer, run:
 
