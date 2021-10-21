@@ -32,7 +32,6 @@ clean :
 arch_flags = $(patsubst %,-arch %,$(archs))
 
 CFLAGS += $(arch_flags)
-
 LINK := $(CC) $(arch_flags) $(LDFLAGS)
 
 
@@ -214,15 +213,11 @@ $(pkg_install_files) : $(TMP)/pkg/% : ./install/% | $$(dir $$@)
 # sign executable
 
 $(TMP)/signed.stamp.txt : $(TMP)/pkg/usr/local/nginx/sbin/nginx | $$(dir $$@)
-	( \
-		xcrun codesign \
-			--sign "$(APP_SIGNING_ID)" \
-			--options runtime \
-			$< \
-		&& date > $@ \
-	) || ( \
-		false \
-	)
+	xcrun codesign \
+		--sign "$(APP_SIGNING_ID)" \
+		--options runtime \
+		$<
+	date > $@
 
 # uninstall
 
@@ -265,7 +260,7 @@ $(TMP)/nginx.pkg : \
 
 ##### product ##########
 
-arch_list := $(shell printf '%s' "$(archs)" | sed "s/ / and /g" )
+arch_list := $(shell printf '%s' "$(archs)" | sed "s/ / and /g")
 date := $(shell date '+%Y-%m-%d')
 macos := $(shell \
 	system_profiler -detailLevel mini SPSoftwareDataType \
@@ -353,14 +348,8 @@ $(TMP)/notarization-log.json : $(TMP)/submission-id.txt | $$(dir $$@)
 		$@
 
 $(TMP)/notarized.stamp.txt : $(TMP)/notarization-log.json | $$(dir $$@)
-	@( \
-		test "$$(jq --raw-output '.status' < $<)" = "Accepted" \
-		&& date > $@ \
-	) || ( \
-		printf 'Status: %s\n' "$$(jq --raw-output '.status' < $<)" \
-		&& printf 'Summary: %s\n' "$$(jq --raw-output '.statusSummary' < $<)" \
-		&& false \
-	)
+	test "$$(jq --raw-output '.status' < $<)" = "Accepted"
+	date > $@
 
 $(TMP)/stapled.stamp.txt : nginx-$(version).pkg $(TMP)/notarized.stamp.txt
 	xcrun stapler staple $< && date > $@

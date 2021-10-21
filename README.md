@@ -43,11 +43,10 @@ The following makefile variables can be set from the command line:
 
 [4]: https://github.com/donmccaughey/nginx_pkg/blob/master/Makefile
 [5]: https://developer.apple.com/account/resources/certificates/list
-[6]: https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/customizing_the_notarization_workflow
 
 To build and sign the executable and installer, run:
 
-        $ make [APP_SIGNING_ID="<cert name 1>"] [INSTALLER_SIGNING_ID="<cert name 2>" [TMP="<build dir>"]
+        $ make [APP_SIGNING_ID="<cert name 1>"] [INSTALLER_SIGNING_ID="<cert name 2>"] [TMP="<build dir>"]
 
 Intermediate files are generated in the temp directory; the signed installer 
 package is written into the project root with the name `nginx-1.20.1.pkg`.  
@@ -75,11 +74,11 @@ Three sets of credentials are needed to sign and notarize this package:
 - A "Developer ID Installer" certificate (for signing the installer package)
 - An App Store Connect API key (for notarizing the signed installer)
 
-The two certificates are obtained from the [Apple Developer portal][7]; use the 
-[Keychain Access app][8] to create the certificate signing requests.  Add the 
+The two certificates are obtained from the [Apple Developer portal][6]; use the 
+[Keychain Access app][7] to create the certificate signing requests.  Add the 
 certificates to the build machine's Keychain.
 
-The App Store Connect API key is obtained from the [App Store Connect site][9].
+The App Store Connect API key is obtained from the [App Store Connect site][8].
 After the key is created, get the _Issuer ID_ (a UUID), the _Key ID_
 (an alphanumeric string) and download the API key, which comes as a file named
 `AuthKey_<key id>.p8`.  To add the API key to the build machine's Keychain, 
@@ -93,9 +92,9 @@ use the `store-credentials` subcommand of `notarytool`:
 
 The `--sync` option adds the credentials to the user's iCloud Keychain.
 
-[7]: https://developer.apple.com/account/resources/certificates/add
-[8]: https://help.apple.com/developer-account/#/devbfa00fef7
-[9]: https://appstoreconnect.apple.com/access/api
+[6]: https://developer.apple.com/account/resources/certificates/add
+[7]: https://help.apple.com/developer-account/#/devbfa00fef7
+[8]: https://appstoreconnect.apple.com/access/api
 
 ## License
 
