@@ -352,5 +352,6 @@ $(TMP)/notarized.stamp.txt : $(TMP)/notarization-log.json | $$(dir $$@)
 	date > $@
 
 $(TMP)/stapled.stamp.txt : nginx-$(version).pkg $(TMP)/notarized.stamp.txt
-	xcrun stapler staple $< && date > $@
+	xcrun stapler staple $<
+	date > $@
 
