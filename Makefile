@@ -27,6 +27,15 @@ clean :
 	-rm -rf $(TMP)
 
 
+.PHONY : check
+check :
+	test "$(shell lipo -archs $(TMP)/pkg/usr/local/nginx/sbin/nginx)" = "x86_64 arm64"
+	codesign --verify --strict $(TMP)/pkg/usr/local/nginx/sbin/nginx
+	pkgutil --check-signature nginx-$(version).pkg
+	spctl --assess --type install nginx-$(version).pkg
+	xcrun stapler validate nginx-$(version).pkg
+
+
 ##### compilation flags ##########
 
 arch_flags = $(patsubst %,-arch %,$(archs))
