@@ -4,7 +4,7 @@ nginx 1.20.1 for macOS
 This project builds a signed macOS universal installer package for 
 [`nginx`][1], a widely used and capable HTTP and proxy server.
 
-[1]: http://nginx.org "nginx"
+[1]: https://nginx.org "nginx"
 
 ## Prerequesites
 
