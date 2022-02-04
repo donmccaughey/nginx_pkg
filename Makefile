@@ -307,7 +307,6 @@ $(TMP)/build-report.txt : | $$(dir $$@)
 	printf 'Architectures: %s\n' "$(arch_list)" >> $@
 	printf 'macOS Version: %s\n' "$(macos)" >> $@
 	printf 'Xcode Version: %s\n' "$(xcode)" >> $@
-	printf 'Tag Version: v%s-r%s\n' "$(version)" "$(revision)" >> $@
 	printf 'APP_SIGNING_ID: %s\n' "$(APP_SIGNING_ID)" >> $@
 	printf 'INSTALLER_SIGNING_ID: %s\n' "$(INSTALLER_SIGNING_ID)" >> $@
 	printf 'NOTARIZATION_KEYCHAIN_PROFILE: %s\n' "$(NOTARIZATION_KEYCHAIN_PROFILE)" >> $@
@@ -315,8 +314,9 @@ $(TMP)/build-report.txt : | $$(dir $$@)
 	printf 'CFLAGS: %s\n' "$(CFLAGS)" >> $@
 	printf 'LINK: %s\n' "$(LINK)" >> $@
 	printf 'LDFLAGS: %s\n' "$(LDFLAGS)" >> $@
-	printf 'Release Title: nginx %s for macOS rev %s\n' "$(version)" "$(revision)" >> $@
-	printf 'Description: A signed macOS installer package for `nginx` %s.\n' "$(version)" >> $@
+	printf 'Tag: v%s-r%s\n' "$(version)" "$(revision)" >> $@
+	printf 'Tag Title: nginx %s for macOS rev %s\n' "$(version)" "$(revision)" >> $@
+	printf 'Tag Message: A signed and notarized universal installer package for `nginx` %s with PCRE %s.\n' "$(version)" "$(pcre_version)" >> $@
 
 $(TMP)/distribution.xml \
 $(TMP)/resources/welcome.html : $(TMP)/% : % | $$(dir $$@)
