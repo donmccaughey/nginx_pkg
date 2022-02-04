@@ -41,7 +41,8 @@ check :
 arch_flags = $(patsubst %,-arch %,$(archs))
 
 CFLAGS += $(arch_flags)
-LINK := $(CC) $(arch_flags) $(LDFLAGS)
+LDFLAGS += $(arch_flags)
+LINK := $(CC) $(LDFLAGS)
 
 
 ##### pcre dist ##########
@@ -302,8 +303,8 @@ $(TMP)/build-report.txt : | $$(dir $$@)
 	printf 'Build Date: %s\n' "$(date)" > $@
 	printf 'Software Version: %s\n' "$(version)" >> $@
 	printf 'PCRE Library Version: %s\n' "$(pcre_version)" >> $@
-	printf 'Architectures: %s\n' "$(arch_list)" >> $@
 	printf 'Installer Revision: %s\n' "$(revision)" >> $@
+	printf 'Architectures: %s\n' "$(arch_list)" >> $@
 	printf 'macOS Version: %s\n' "$(macos)" >> $@
 	printf 'Xcode Version: %s\n' "$(xcode)" >> $@
 	printf 'Tag Version: v%s-r%s\n' "$(version)" "$(revision)" >> $@
