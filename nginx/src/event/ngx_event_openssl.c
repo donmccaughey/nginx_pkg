@@ -378,6 +378,10 @@ ngx_ssl_create(ngx_ssl_t *ssl, ngx_uint_t protocols, void *data)
     SSL_CTX_set_options(ssl->ctx, SSL_OP_NO_CLIENT_RENEGOTIATION);
 #endif
 
+#ifdef SSL_OP_IGNORE_UNEXPECTED_EOF
+    SSL_CTX_set_options(ssl->ctx, SSL_OP_IGNORE_UNEXPECTED_EOF);
+#endif
+
 #ifdef SSL_MODE_RELEASE_BUFFERS
     SSL_CTX_set_mode(ssl->ctx, SSL_MODE_RELEASE_BUFFERS);
 #endif
@@ -1116,6 +1120,8 @@ ngx_ssl_info_callback(const ngx_ssl_conn_t *ssl_conn, int where, int ret)
 }
 
 
+#if (OPENSSL_VERSION_NUMBER < 0x10100001L && !defined LIBRESSL_VERSION_NUMBER)
+
 RSA *
 ngx_ssl_rsa512_key_callback(ngx_ssl_conn_t *ssl_conn, int is_export,
     int key_length)
@@ -1126,7 +1132,7 @@ ngx_ssl_rsa512_key_callback(ngx_ssl_conn_t *ssl_conn, int is_export,
         return NULL;
     }
 
-#if (OPENSSL_VERSION_NUMBER < 0x10100003L && !defined OPENSSL_NO_DEPRECATED)
+#ifndef OPENSSL_NO_DEPRECATED
 
     if (key == NULL) {
         key = RSA_generate_key(512, RSA_F4, NULL, NULL);
@@ -1136,6 +1142,8 @@ ngx_ssl_rsa512_key_callback(ngx_ssl_conn_t *ssl_conn, int is_export,
 
     return key;
 }
+
+#endif
 
 
 ngx_array_t *
@@ -1350,7 +1358,6 @@ ngx_ssl_passwords_cleanup(void *data)
 ngx_int_t
 ngx_ssl_dhparam(ngx_conf_t *cf, ngx_ssl_t *ssl, ngx_str_t *file)
 {
-    DH   *dh;
     BIO  *bio;
 
     if (file->len == 0) {
@@ -1368,6 +1375,10 @@ ngx_ssl_dhparam(ngx_conf_t *cf, ngx_ssl_t *ssl, ngx_str_t *file)
         return NGX_ERROR;
     }
 
+#ifdef SSL_CTX_set_tmp_dh
+    {
+    DH  *dh;
+
     dh = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
     if (dh == NULL) {
         ngx_ssl_error(NGX_LOG_EMERG, ssl->log, 0,
@@ -1376,9 +1387,42 @@ ngx_ssl_dhparam(ngx_conf_t *cf, ngx_ssl_t *ssl, ngx_str_t *file)
         return NGX_ERROR;
     }
 
-    SSL_CTX_set_tmp_dh(ssl->ctx, dh);
+    if (SSL_CTX_set_tmp_dh(ssl->ctx, dh) != 1) {
+        ngx_ssl_error(NGX_LOG_EMERG, ssl->log, 0,
+                      "SSL_CTX_set_tmp_dh(\"%s\") failed", file->data);
+        DH_free(dh);
+        BIO_free(bio);
+        return NGX_ERROR;
+    }
 
     DH_free(dh);
+    }
+#else
+    {
+    EVP_PKEY  *dh;
+
+    /*
+     * PEM_read_bio_DHparams() and SSL_CTX_set_tmp_dh()
+     * are deprecated in OpenSSL 3.0
+     */
+
+    dh = PEM_read_bio_Parameters(bio, NULL);
+    if (dh == NULL) {
+        ngx_ssl_error(NGX_LOG_EMERG, ssl->log, 0,
+                      "PEM_read_bio_Parameters(\"%s\") failed", file->data);
+        BIO_free(bio);
+        return NGX_ERROR;
+    }
+
+    if (SSL_CTX_set0_tmp_dh_pkey(ssl->ctx, dh) != 1) {
+        ngx_ssl_error(NGX_LOG_EMERG, ssl->log, 0,
+                      "SSL_CTX_set0_tmp_dh_pkey(\%s\") failed", file->data);
+        BIO_free(bio);
+        return NGX_ERROR;
+    }
+    }
+#endif
+
     BIO_free(bio);
 
     return NGX_OK;
@@ -1740,6 +1784,9 @@ ngx_ssl_handshake(ngx_connection_t *c)
         c->recv_chain = ngx_ssl_recv_chain;
         c->send_chain = ngx_ssl_send_chain;
 
+        c->read->ready = 1;
+        c->write->ready = 1;
+
 #ifndef SSL_OP_NO_RENEGOTIATION
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #ifdef SSL3_FLAGS_NO_RENEGOTIATE_CIPHERS
@@ -1884,6 +1931,9 @@ ngx_ssl_try_early_data(ngx_connection_t *c)
         c->send = ngx_ssl_write;
         c->recv_chain = ngx_ssl_recv_chain;
         c->send_chain = ngx_ssl_send_chain;
+
+        c->read->ready = 1;
+        c->write->ready = 1;
 
         rc = ngx_ssl_ocsp_validate(c);
 
@@ -2896,8 +2946,11 @@ ngx_int_t
 ngx_ssl_shutdown(ngx_connection_t *c)
 {
     int         n, sslerr, mode;
+    ngx_int_t   rc;
     ngx_err_t   err;
     ngx_uint_t  tries;
+
+    rc = NGX_OK;
 
     ngx_ssl_ocsp_cleanup(c);
 
@@ -2908,11 +2961,7 @@ ngx_ssl_shutdown(ngx_connection_t *c)
          * Avoid calling SSL_shutdown() if handshake wasn't completed.
          */
 
-        SSL_free(c->ssl->connection);
-        c->ssl = NULL;
-        c->recv = ngx_recv;
-
-        return NGX_OK;
+        goto done;
     }
 
     if (c->timedout || c->error || c->buffered) {
@@ -2954,11 +3003,7 @@ ngx_ssl_shutdown(ngx_connection_t *c)
         ngx_log_debug1(NGX_LOG_DEBUG_EVENT, c->log, 0, "SSL_shutdown: %d", n);
 
         if (n == 1) {
-            SSL_free(c->ssl->connection);
-            c->ssl = NULL;
-            c->recv = ngx_recv;
-
-            return NGX_OK;
+            goto done;
         }
 
         if (n == 0 && tries-- > 1) {
@@ -2984,11 +3029,11 @@ ngx_ssl_shutdown(ngx_connection_t *c)
             }
 
             if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
-                return NGX_ERROR;
+                goto failed;
             }
 
             if (ngx_handle_write_event(c->write, 0) != NGX_OK) {
-                return NGX_ERROR;
+                goto failed;
             }
 
             ngx_add_timer(c->read, 3000);
@@ -2997,23 +3042,33 @@ ngx_ssl_shutdown(ngx_connection_t *c)
         }
 
         if (sslerr == SSL_ERROR_ZERO_RETURN || ERR_peek_error() == 0) {
-            SSL_free(c->ssl->connection);
-            c->ssl = NULL;
-            c->recv = ngx_recv;
-
-            return NGX_OK;
+            goto done;
         }
 
         err = (sslerr == SSL_ERROR_SYSCALL) ? ngx_errno : 0;
 
         ngx_ssl_connection_error(c, sslerr, err, "SSL_shutdown() failed");
 
-        SSL_free(c->ssl->connection);
-        c->ssl = NULL;
-        c->recv = ngx_recv;
-
-        return NGX_ERROR;
+        break;
     }
+
+failed:
+
+    rc = NGX_ERROR;
+
+done:
+
+    if (c->ssl->shutdown_without_free) {
+        c->ssl->shutdown_without_free = 0;
+        c->recv = ngx_recv;
+        return rc;
+    }
+
+    SSL_free(c->ssl->connection);
+    c->ssl = NULL;
+    c->recv = ngx_recv;
+
+    return rc;
 }
 
 
@@ -3229,7 +3284,7 @@ ngx_ssl_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err, char *fmt, ...)
 
         for ( ;; ) {
 
-            n = ERR_peek_error_line_data(NULL, NULL, &data, &flags);
+            n = ERR_peek_error_data(&data, &flags);
 
             if (n == 0) {
                 break;
