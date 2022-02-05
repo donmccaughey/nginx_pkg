@@ -5,6 +5,7 @@ TMP ?= $(abspath tmp)
 
 version := 1.20.2
 pcre_version := 8.45
+zlib_version := 1.2.11
 revision := 1
 archs := arm64 x86_64
 
@@ -30,6 +31,7 @@ clean :
 .PHONY : check
 check :
 	test "$(shell lipo -archs $(TMP)/pkg/usr/local/nginx/sbin/nginx)" = "x86_64 arm64"
+	test "$(shell ./tools/dylibs --count $(TMP)/pkg/usr/local/nginx/sbin/nginx) dylibs" = "0 dylibs"
 	codesign --verify --strict $(TMP)/pkg/usr/local/nginx/sbin/nginx
 	pkgutil --check-signature nginx-$(version).pkg
 	spctl --assess --type install nginx-$(version).pkg
@@ -60,6 +62,21 @@ $(pcre_dirs) :
 	mkdir -p $@
 
 
+##### zlib dist ##########
+
+zlib_dist := $(shell find ./zlib -type f \! -name .DS_Store)
+
+zlib_files := $(patsubst ./zlib/%,$(TMP)/zlib/%,$(zlib_dist))
+
+$(zlib_files): $(TMP)/zlib/% : ./zlib/% | $$(dir $$@)
+	cp $< $@
+
+zlib_dirs := $(sort $(dir $(zlib_files)))
+
+$(zlib_dirs) :
+	mkdir -p $@
+
+
 ##### nginx dist ##########
 
 # configure
@@ -70,11 +87,13 @@ $(TMP)/nginx/build :
 $(TMP)/nginx/configured.stamp.txt : \
 		./nginx/configure \
 		$(pcre_files) \
+		$(zlib_files) \
 		| $(TMP)/nginx/build
 	cd ./nginx && ./configure \
 		--builddir=$(TMP)/nginx/build \
 		--with-pcre=$(TMP)/pcre \
-		--with-pcre-jit
+		--with-pcre-jit \
+		--with-zlib=$(TMP)/zlib
 	date > $@
 
 ./nginx/Makefile \
@@ -200,6 +219,7 @@ $(pkg_nginx_html) : $(TMP)/pkg/% : $(TMP)/nginx/install/% ./footer.html | $$(dir
 		$< > $@
 	sed \
 		-e 's/{{pcre_version}}/$(pcre_version)/g' \
+		-e 's/{{zlib_version}}/$(zlib_version)/g' \
 		-e 's/{{revision}}/$(revision)/g'\
 		-e 's/{{version}}/$(version)/g'\
 		-i '' $@
@@ -303,6 +323,7 @@ $(TMP)/build-report.txt : | $$(dir $$@)
 	printf 'Build Date: %s\n' "$(date)" > $@
 	printf 'Software Version: %s\n' "$(version)" >> $@
 	printf 'PCRE Library Version: %s\n' "$(pcre_version)" >> $@
+	printf 'zlib Library Version: %s\n' "$(zlib_version)" >> $@
 	printf 'Installer Revision: %s\n' "$(revision)" >> $@
 	printf 'Architectures: %s\n' "$(arch_list)" >> $@
 	printf 'macOS Version: %s\n' "$(macos)" >> $@
@@ -316,7 +337,8 @@ $(TMP)/build-report.txt : | $$(dir $$@)
 	printf 'LDFLAGS: %s\n' "$(LDFLAGS)" >> $@
 	printf 'Tag: v%s-r%s\n' "$(version)" "$(revision)" >> $@
 	printf 'Tag Title: nginx %s for macOS rev %s\n' "$(version)" "$(revision)" >> $@
-	printf 'Tag Message: A signed and notarized universal installer package for `nginx` %s with PCRE %s.\n' "$(version)" "$(pcre_version)" >> $@
+	printf 'Tag Message: A signed and notarized universal installer package for `nginx` %s with PCRE %s and zlib %s.\n' \
+		"$(version)" "$(pcre_version)" "$(zlib_version)" >> $@
 
 $(TMP)/distribution.xml \
 $(TMP)/resources/welcome.html : $(TMP)/% : % | $$(dir $$@)
@@ -325,6 +347,7 @@ $(TMP)/resources/welcome.html : $(TMP)/% : % | $$(dir $$@)
 		-e 's/{{date}}/$(date)/g' \
 		-e 's/{{macos}}/$(macos)/g' \
 		-e 's/{{pcre_version}}/$(pcre_version)/g' \
+		-e 's/{{zlib_version}}/$(zlib_version)/g' \
 		-e 's/{{revision}}/$(revision)/g' \
 		-e 's/{{version}}/$(version)/g' \
 		-e 's/{{xcode}}/$(xcode)/g' \
