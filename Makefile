@@ -51,30 +51,10 @@ LINK := $(CC) $(LDFLAGS)
 
 pcre_dist := $(shell find ./pcre -type f \! -name .DS_Store)
 
-pcre_files := $(patsubst ./pcre/%,$(TMP)/pcre/%,$(pcre_dist))
-
-$(pcre_files): $(TMP)/pcre/% : ./pcre/% | $$(dir $$@)
-	cp $< $@
-
-pcre_dirs := $(sort $(dir $(pcre_files)))
-
-$(pcre_dirs) :
-	mkdir -p $@
-
 
 ##### zlib dist ##########
 
 zlib_dist := $(shell find ./zlib -type f \! -name .DS_Store)
-
-zlib_files := $(patsubst ./zlib/%,$(TMP)/zlib/%,$(zlib_dist))
-
-$(zlib_files): $(TMP)/zlib/% : ./zlib/% | $$(dir $$@)
-	cp $< $@
-
-zlib_dirs := $(sort $(dir $(zlib_files)))
-
-$(zlib_dirs) :
-	mkdir -p $@
 
 
 ##### nginx dist ##########
@@ -86,9 +66,13 @@ $(TMP)/nginx/build :
 
 $(TMP)/nginx/configured.stamp.txt : \
 		./nginx/configure \
-		| $(pcre_files) \
-		$(zlib_files) \
-		$(TMP)/nginx/build
+		$(pcre_dist) \
+		$(zlib_dist) \
+		| $(TMP)/nginx/build
+	rm -rf $(TMP)/pcre
+	cp -r ./pcre $(TMP)/pcre
+	rm -rf $(TMP)/zlib
+	cp -r ./zlib $(TMP)/zlib
 	cd ./nginx && ./configure \
 		--builddir=$(TMP)/nginx/build \
 		--with-pcre=$(TMP)/pcre \
