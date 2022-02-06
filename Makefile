@@ -86,9 +86,9 @@ $(TMP)/nginx/build :
 
 $(TMP)/nginx/configured.stamp.txt : \
 		./nginx/configure \
-		$(pcre_files) \
+		| $(pcre_files) \
 		$(zlib_files) \
-		| $(TMP)/nginx/build
+		$(TMP)/nginx/build
 	cd ./nginx && ./configure \
 		--builddir=$(TMP)/nginx/build \
 		--with-pcre=$(TMP)/pcre \
@@ -150,8 +150,7 @@ nginx_installed_files := \
 	$(TMP)/nginx/install/usr/local/nginx/conf/uwsgi_params \
 	$(TMP)/nginx/install/usr/local/nginx/conf/uwsgi_params.default \
 	$(TMP)/nginx/install/usr/local/nginx/conf/win-utf \
-	$(TMP)/nginx/install/usr/local/nginx/html/50x.html \
-	$(TMP)/nginx/install/usr/local/nginx/sbin/nginx
+	$(TMP)/nginx/install/usr/local/nginx/html/50x.html
 
 nginx_installed_conf := \
 	$(TMP)/nginx/install/usr/local/nginx/conf/nginx.conf \
@@ -162,8 +161,10 @@ nginx_installed_html := \
 
 nginx_installed_dirs := \
 	$(TMP)/nginx/install/usr/local/nginx/logs \
+	$(TMP)/nginx/install/usr/local/nginx/sbin \
 	$(sort $(dir $(nginx_installed_files) $(nginx_installed_conf) $(nginx_installed_html)))
 
+$(TMP)/nginx/install/usr/local/nginx/sbin/nginx \
 $(nginx_installed_files) \
 $(nginx_installed_conf) \
 $(nginx_installed_html) \
@@ -224,6 +225,13 @@ $(pkg_nginx_html) : $(TMP)/pkg/% : $(TMP)/nginx/install/% ./footer.html | $$(dir
 		-e 's/{{version}}/$(version)/g'\
 		-i '' $@
 
+$(TMP)/pkg/usr/local/nginx/sbin/nginx : $(TMP)/nginx/install/usr/local/nginx/sbin/nginx | $$(dir $$@)
+	cp $< $@
+	xcrun codesign \
+		--sign "$(APP_SIGNING_ID)" \
+		--options runtime \
+		$@
+
 # install
 
 install_dirs := $(shell find ./install -type d \! -path ./install \! -name .DS_Store)
@@ -240,15 +248,6 @@ pkg_install_files := $(patsubst ./install/%,$(TMP)/pkg/%,$(install_files))
 $(pkg_install_files) : $(TMP)/pkg/% : ./install/% | $$(dir $$@)
 	cp $< $@
 
-# sign executable
-
-$(TMP)/signed.stamp.txt : $(TMP)/pkg/usr/local/nginx/sbin/nginx | $$(dir $$@)
-	xcrun codesign \
-		--sign "$(APP_SIGNING_ID)" \
-		--options runtime \
-		$<
-	date > $@
-
 # uninstall
 
 $(TMP)/pkg/usr/local/nginx/bin :
@@ -256,6 +255,7 @@ $(TMP)/pkg/usr/local/nginx/bin :
 
 $(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx : \
 		./uninstall-nginx \
+		$(TMP)/pkg/usr/local/nginx/sbin/nginx \
 		$(pkg_nginx_files) \
 		$(pkg_nginx_conf) \
 		$(pkg_nginx_html) \
@@ -274,11 +274,15 @@ $(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx : \
 script_files := $(shell find ./scripts -type f \! -name .DS_Store)
 
 $(TMP)/nginx.pkg : \
-		$(pkg_nginx_dirs) $(pkg_nginx_files) $(pkg_nginx_conf) $(pkg_nginx_html) \
-		$(pkg_install_dirs) $(pkg_install_files) \
+		$(TMP)/pkg/usr/local/nginx/sbin/nginx \
+		$(pkg_nginx_dirs) \
+		$(pkg_nginx_files) \
+		$(pkg_nginx_conf) \
+		$(pkg_nginx_html) \
+		$(pkg_install_dirs) \
+		$(pkg_install_files) \
 		$(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx \
-		$(script_files) \
-		$(TMP)/signed.stamp.txt
+		$(script_files)
 	pkgbuild \
 		--root $(TMP)/pkg \
 		--identifier cc.donm.pkg.nginx \
