@@ -14,11 +14,11 @@ archs := arm64 x86_64
 
 
 .PHONY : signed-package
-signed-package : nginx-$(version).pkg
+signed-package : $(TMP)/nginx-$(version)-unnotarized.pkg
 
 
 .PHONY : notarize
-notarize : $(TMP)/stapled.stamp.txt
+notarize : nginx-$(version).pkg
 
 
 .PHONY : clean
@@ -291,7 +291,7 @@ xcode := $(shell \
 	| awk -F ' ' '{print $$2}' \
 	)
 
-nginx-$(version).pkg : \
+$(TMP)/nginx-$(version)-unnotarized.pkg : \
 		$(TMP)/nginx.pkg \
 		$(TMP)/build-report.txt \
 		$(TMP)/distribution.xml \
@@ -353,7 +353,7 @@ $(TMP)/resources :
 
 ##### notarization ##########
 
-$(TMP)/submit-log.json : nginx-$(version).pkg | $$(dir $$@)
+$(TMP)/submit-log.json : $(TMP)/nginx-$(version)-unnotarized.pkg | $$(dir $$@)
 	xcrun notarytool submit $< \
 		--keychain-profile "$(NOTARIZATION_KEYCHAIN_PROFILE)" \
 		--output-format json \
@@ -372,7 +372,7 @@ $(TMP)/notarized.stamp.txt : $(TMP)/notarization-log.json | $$(dir $$@)
 	test "$$(jq --raw-output '.status' < $<)" = "Accepted"
 	date > $@
 
-$(TMP)/stapled.stamp.txt : nginx-$(version).pkg $(TMP)/notarized.stamp.txt
-	xcrun stapler staple $<
-	date > $@
+nginx-$(version).pkg : $(TMP)/nginx-$(version)-unnotarized.pkg $(TMP)/notarized.stamp.txt
+	cp $< $@
+	xcrun stapler staple $@
 
