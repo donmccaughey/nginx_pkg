@@ -9,16 +9,19 @@ zlib_version := 1.2.11
 revision := 1
 archs := arm64 x86_64
 
+rev := $(if $(patsubst 1,,$(revision)),-r$(revision),)
+ver := $(version)$(rev)
+
 
 .SECONDEXPANSION :
 
 
 .PHONY : signed-package
-signed-package : $(TMP)/nginx-$(version)-unnotarized.pkg
+signed-package : $(TMP)/nginx-$(ver)-unnotarized.pkg
 
 
 .PHONY : notarize
-notarize : nginx-$(version).pkg
+notarize : nginx-$(ver).pkg
 
 
 .PHONY : clean
@@ -33,9 +36,9 @@ check :
 	test "$(shell lipo -archs $(TMP)/pkg/usr/local/nginx/sbin/nginx)" = "x86_64 arm64"
 	test "$(shell ./tools/dylibs --count $(TMP)/pkg/usr/local/nginx/sbin/nginx) dylibs" = "0 dylibs"
 	codesign --verify --strict $(TMP)/pkg/usr/local/nginx/sbin/nginx
-	pkgutil --check-signature nginx-$(version).pkg
-	spctl --assess --type install nginx-$(version).pkg
-	xcrun stapler validate nginx-$(version).pkg
+	pkgutil --check-signature nginx-$(ver).pkg
+	spctl --assess --type install nginx-$(ver).pkg
+	xcrun stapler validate nginx-$(ver).pkg
 
 
 ##### compilation flags ##########
@@ -291,7 +294,7 @@ xcode := $(shell \
 	| awk -F ' ' '{print $$2}' \
 	)
 
-$(TMP)/nginx-$(version)-unnotarized.pkg : \
+$(TMP)/nginx-$(ver)-unnotarized.pkg : \
 		$(TMP)/nginx.pkg \
 		$(TMP)/build-report.txt \
 		$(TMP)/distribution.xml \
@@ -353,7 +356,7 @@ $(TMP)/resources :
 
 ##### notarization ##########
 
-$(TMP)/submit-log.json : $(TMP)/nginx-$(version)-unnotarized.pkg | $$(dir $$@)
+$(TMP)/submit-log.json : $(TMP)/nginx-$(ver)-unnotarized.pkg | $$(dir $$@)
 	xcrun notarytool submit $< \
 		--keychain-profile "$(NOTARIZATION_KEYCHAIN_PROFILE)" \
 		--output-format json \
@@ -372,7 +375,7 @@ $(TMP)/notarized.stamp.txt : $(TMP)/notarization-log.json | $$(dir $$@)
 	test "$$(jq --raw-output '.status' < $<)" = "Accepted"
 	date > $@
 
-nginx-$(version).pkg : $(TMP)/nginx-$(version)-unnotarized.pkg $(TMP)/notarized.stamp.txt
+nginx-$(ver).pkg : $(TMP)/nginx-$(ver)-unnotarized.pkg $(TMP)/notarized.stamp.txt
 	cp $< $@
 	xcrun stapler staple $@
 
