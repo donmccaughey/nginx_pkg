@@ -27,6 +27,8 @@ def get_args():
             description='Show dylibs used by an executable.')
     arg_parser.add_argument('--count', action='store_true', 
             help='Print the count of dylibs only')
+    arg_parser.add_argument('--no-sys-libs', action='store_true', 
+            help='Skip any system dylibs')
     arg_parser.add_argument('exe', metavar='EXECUTABLE', type=str, 
             help='The executable to examine')
     return arg_parser.parse_args()
@@ -62,8 +64,9 @@ def remove_sys_libs(dylibs):
 def main():
     args = get_args()
     exe_path = get_exe_path(args.exe)
-    all_dylibs = get_all_dylibs(exe_path)
-    dylibs = remove_sys_libs(all_dylibs)
+    dylibs = get_all_dylibs(exe_path)
+    if args.no_sys_libs:
+        dylibs = remove_sys_libs(dylibs)
     if args.count:
         print(len(dylibs))
     else:
