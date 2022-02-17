@@ -243,9 +243,11 @@ $(TMP)/pkg/usr/local/nginx/bin :
 $(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx : \
 		./uninstall-nginx \
 		$(TMP)/pkg/usr/local/nginx/sbin/nginx \
+		$(pkg_nginx_dirs) \
 		$(pkg_nginx_files) \
 		$(pkg_nginx_conf) \
 		$(pkg_nginx_html) \
+		$(pkg_install_dirs) \
 		$(pkg_install_files) \
 		| $$(dir $$@)
 	cp $< $@
@@ -261,13 +263,6 @@ $(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx : \
 script_files := $(shell find ./scripts -type f \! -name .DS_Store)
 
 $(TMP)/nginx.pkg : \
-		$(TMP)/pkg/usr/local/nginx/sbin/nginx \
-		$(pkg_nginx_dirs) \
-		$(pkg_nginx_files) \
-		$(pkg_nginx_conf) \
-		$(pkg_nginx_html) \
-		$(pkg_install_dirs) \
-		$(pkg_install_files) \
 		$(TMP)/pkg/usr/local/nginx/bin/uninstall-nginx \
 		$(script_files)
 	pkgbuild \
