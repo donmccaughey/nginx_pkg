@@ -3,7 +3,7 @@ nginx 1.20.2 for macOS
 
 This project builds a signed and notarized macOS universal installer package
 for [`nginx`][1], a widely used and capable HTTP and proxy server.  It contains
-the source distributions of nginx 1.20.2, [PCRE 8.45][2] and [zlib 1.2.11][3].
+the source distributions of nginx 1.20.2, [PCRE 8.45][2] and [zlib 1.2.12][3].
 
 [1]: https://nginx.org "nginx"
 [2]: http://www.pcre.org
@@ -15,8 +15,8 @@ A recent version of Xcode and the [`jq`][4] command are needed to build and
 notarize this installer package.  An [Apple Developer][5] account is required
 to generate the credentials needed to sign and notarize.
 
-Building was last tested on an Apple Silicon Mac with macOS Monterey 12.1 and
-Xcode 13.2.1.  Installation was last tested on both Intel and Apple Silicon
+Building was last tested on an Apple Silicon Mac with macOS Monterey 12.3.1 and
+Xcode 13.3.1.  Installation was last tested on both Intel and Apple Silicon
 Macs running Monterey.
 
 [4]: https://stedolan.github.io/jq/
@@ -52,7 +52,7 @@ To build and sign the executable and installer, run:
         $ make [APP_SIGNING_ID="<cert name 1>"] [INSTALLER_SIGNING_ID="<cert name 2>"] [TMP="<build dir>"]
 
 Intermediate files are generated in the temp directory; the signed installer 
-package is written into the project root with the name `nginx-1.20.2.pkg`.  
+package is written into the project root with the name `nginx-1.20.2-r2.pkg`.  
 To notarize the signed installer package, run:
 
         $ make notarize [NOTARIZATION_KEYCHAIN_PROFILE="<profile name>"] [TMP="<build dir>"]
@@ -62,7 +62,7 @@ success.  Check the file `$(TMP)/notarization-log.json` for detailed
 information if notarization fails.  The signed installer is stapled in place
 if notarization succeeds.  Use the command:
 
-        $ xcrun stapler validate --verbose nginx-1.20.2.pkg
+        $ xcrun stapler validate --verbose nginx-1.20.2-r2.pkg
 
 to check the notarization state of the installer package.
 

@@ -5,8 +5,8 @@ TMP ?= $(abspath tmp)
 
 version := 1.20.2
 pcre_version := 8.45
-zlib_version := 1.2.11
-revision := 1
+zlib_version := 1.2.12
+revision := 2
 archs := arm64 x86_64
 
 rev := $(if $(patsubst 1,,$(revision)),-r$(revision),)
@@ -323,7 +323,7 @@ $(TMP)/build-report.txt : | $$(dir $$@)
 	printf 'LDFLAGS: %s\n' "$(LDFLAGS)" >> $@
 	printf 'Tag: v%s-r%s\n' "$(version)" "$(revision)" >> $@
 	printf 'Tag Title: nginx %s for macOS rev %s\n' "$(version)" "$(revision)" >> $@
-	printf 'Tag Message: A signed and notarized universal installer package for `nginx` %s with PCRE %s and zlib %s.\n' \
+	printf 'Tag Message: A signed and notarized universal installer package for `nginx` %s, built with PCRE %s and zlib %s.\n' \
 		"$(version)" "$(pcre_version)" "$(zlib_version)" >> $@
 
 $(TMP)/distribution.xml \
