@@ -4,7 +4,7 @@ NOTARIZATION_KEYCHAIN_PROFILE ?= Donald McCaughey
 TMP ?= $(abspath tmp)
 
 version := 1.22.0
-pcre_version := 8.45
+pcre2_version := 10.40
 zlib_version := 1.2.12
 revision := 1
 archs := arm64 x86_64
@@ -50,9 +50,9 @@ LDFLAGS += $(arch_flags)
 LINK := $(CC) $(LDFLAGS)
 
 
-##### pcre dist ##########
+##### pcre2 dist ##########
 
-pcre_dist := $(shell find ./pcre -type f \! -name .DS_Store)
+pcre2_dist := $(shell find ./pcre2 -type f \! -name .DS_Store)
 
 
 ##### zlib dist ##########
@@ -69,16 +69,16 @@ $(TMP)/nginx/build :
 
 $(TMP)/nginx/configured.stamp.txt : \
 		./nginx/configure \
-		$(pcre_dist) \
+		$(pcre2_dist) \
 		$(zlib_dist) \
 		| $(TMP)/nginx/build
-	rm -rf $(TMP)/pcre
-	cp -r ./pcre $(TMP)/pcre
+	rm -rf $(TMP)/pcre2
+	cp -r ./pcre2 $(TMP)/pcre2
 	rm -rf $(TMP)/zlib
 	cp -r ./zlib $(TMP)/zlib
 	cd ./nginx && ./configure \
 		--builddir=$(TMP)/nginx/build \
-		--with-pcre=$(TMP)/pcre \
+		--with-pcre=$(TMP)/pcre2 \
 		--with-pcre-jit \
 		--with-zlib=$(TMP)/zlib
 	date > $@
@@ -206,7 +206,7 @@ $(pkg_nginx_html) : $(TMP)/pkg/% : $(TMP)/nginx/install/% ./footer.html | $$(dir
 		-e "\$${ H $$N x $$N }" \
 		$< > $@
 	sed \
-		-e 's/{{pcre_version}}/$(pcre_version)/g' \
+		-e 's/{{pcre2_version}}/$(pcre2_version)/g' \
 		-e 's/{{zlib_version}}/$(zlib_version)/g' \
 		-e 's/{{revision}}/$(revision)/g'\
 		-e 's/{{version}}/$(version)/g'\
@@ -308,7 +308,7 @@ $(TMP)/nginx-$(ver)-unnotarized.pkg : \
 $(TMP)/build-report.txt : | $$(dir $$@)
 	printf 'Build Date: %s\n' "$(date)" > $@
 	printf 'Software Version: %s\n' "$(version)" >> $@
-	printf 'PCRE Library Version: %s\n' "$(pcre_version)" >> $@
+	printf 'PCRE2 Library Version: %s\n' "$(pcre2_version)" >> $@
 	printf 'zlib Library Version: %s\n' "$(zlib_version)" >> $@
 	printf 'Installer Revision: %s\n' "$(revision)" >> $@
 	printf 'Architectures: %s\n' "$(arch_list)" >> $@
@@ -323,8 +323,8 @@ $(TMP)/build-report.txt : | $$(dir $$@)
 	printf 'LDFLAGS: %s\n' "$(LDFLAGS)" >> $@
 	printf 'Tag: v%s-r%s\n' "$(version)" "$(revision)" >> $@
 	printf 'Tag Title: nginx %s for macOS rev %s\n' "$(version)" "$(revision)" >> $@
-	printf 'Tag Message: A signed and notarized universal installer package for `nginx` %s, built with PCRE %s and zlib %s.\n' \
-		"$(version)" "$(pcre_version)" "$(zlib_version)" >> $@
+	printf 'Tag Message: A signed and notarized universal installer package for `nginx` %s, built with PCRE2 %s and zlib %s.\n' \
+		"$(version)" "$(pcre2_version)" "$(zlib_version)" >> $@
 
 $(TMP)/distribution.xml \
 $(TMP)/resources/welcome.html : $(TMP)/% : % | $$(dir $$@)
@@ -332,7 +332,7 @@ $(TMP)/resources/welcome.html : $(TMP)/% : % | $$(dir $$@)
 		-e 's/{{arch_list}}/$(arch_list)/g' \
 		-e 's/{{date}}/$(date)/g' \
 		-e 's/{{macos}}/$(macos)/g' \
-		-e 's/{{pcre_version}}/$(pcre_version)/g' \
+		-e 's/{{pcre2_version}}/$(pcre2_version)/g' \
 		-e 's/{{zlib_version}}/$(zlib_version)/g' \
 		-e 's/{{revision}}/$(revision)/g' \
 		-e 's/{{version}}/$(version)/g' \

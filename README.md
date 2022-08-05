@@ -3,7 +3,7 @@ nginx 1.22.0 for macOS
 
 This project builds a signed and notarized macOS universal installer package
 for [`nginx`][1], a widely used and capable HTTP and proxy server.  It contains
-the source distributions of nginx 1.20.2, [PCRE 8.45][2] and [zlib 1.2.12][3].
+the source distributions of nginx 1.20.2, [PCRE2 10.40][2] and [zlib 1.2.12][3].
 
 [1]: https://nginx.org "nginx"
 [2]: http://www.pcre.org
