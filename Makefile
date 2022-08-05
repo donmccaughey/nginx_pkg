@@ -3,10 +3,10 @@ INSTALLER_SIGNING_ID ?= Developer ID Installer: Donald McCaughey
 NOTARIZATION_KEYCHAIN_PROFILE ?= Donald McCaughey
 TMP ?= $(abspath tmp)
 
-version := 1.20.2
+version := 1.22.0
 pcre_version := 8.45
 zlib_version := 1.2.12
-revision := 2
+revision := 1
 archs := arm64 x86_64
 
 rev := $(if $(patsubst 1,,$(revision)),-r$(revision),)
