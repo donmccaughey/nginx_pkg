@@ -3,7 +3,7 @@ nginx 1.22.0 for macOS
 
 This project builds a signed and notarized macOS universal installer package
 for [`nginx`][1], a widely used and capable HTTP and proxy server.  It contains
-the source distributions of nginx 1.22.0, [PCRE2 10.40][2] and [zlib 1.2.13][3].
+the source distributions of nginx 1.22.0, [PCRE2 10.42][2] and [zlib 1.2.13][3].
 
 [1]: https://nginx.org "nginx"
 [2]: http://www.pcre.org
@@ -101,7 +101,7 @@ The `--sync` option adds the credentials to the user's iCloud Keychain.
 
 ## License
 
-The installer and related scripts are copyright (c) 2022 Don McCaughey.
+The installer and related scripts are copyright (c) 2023 Don McCaughey.
 `nginx` and the installer are distributed under a BSD-style license.
 See the LICENSE file for details.
 
