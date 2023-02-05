@@ -1,9 +1,9 @@
-nginx 1.22.0 for macOS
+nginx 1.22.1 for macOS
 ======================
 
 This project builds a signed and notarized macOS universal installer package
 for [`nginx`][1], a widely used and capable HTTP and proxy server.  It contains
-the source distributions of nginx 1.22.0, [PCRE2 10.42][2] and [zlib 1.2.13][3].
+the source distributions of nginx 1.22.1, [PCRE2 10.42][2] and [zlib 1.2.13][3].
 
 [1]: https://nginx.org "nginx"
 [2]: http://www.pcre.org
@@ -15,9 +15,9 @@ A recent version of Xcode and the [`jq`][4] command are needed to build and
 notarize this installer package.  An [Apple Developer][5] account is required
 to generate the credentials needed to sign and notarize.
 
-Building was last tested on an Apple Silicon Mac with macOS Monterey 12.5 and
-Xcode 13.4.1.  Installation was last tested on both Intel and Apple Silicon
-Macs running Monterey.
+Building was last tested on an Apple Silicon Mac with macOS Ventura 13.1 and
+Xcode 14.2.  Installation was last tested on both Intel and Apple Silicon Macs
+running Ventura.
 
 [4]: https://stedolan.github.io/jq/
 [5]: https://developer.apple.com
@@ -52,7 +52,7 @@ To build and sign the executable and installer, run:
         $ make [APP_SIGNING_ID="<cert name 1>"] [INSTALLER_SIGNING_ID="<cert name 2>"] [TMP="<build dir>"]
 
 Intermediate files are generated in the temp directory; the signed installer 
-package is written into the project root with the name `nginx-1.22.0.pkg`.  
+package is written into the project root with the name `nginx-1.22.1.pkg`.  
 To notarize the signed installer package, run:
 
         $ make notarize [NOTARIZATION_KEYCHAIN_PROFILE="<profile name>"] [TMP="<build dir>"]
@@ -62,7 +62,7 @@ success.  Check the file `$(TMP)/notarization-log.json` for detailed
 information if notarization fails.  The signed installer is stapled in place
 if notarization succeeds.  Use the command:
 
-        $ xcrun stapler validate --verbose nginx-1.22.0.pkg
+        $ xcrun stapler validate --verbose nginx-1.22.1.pkg
 
 to check the notarization state of the installer package.
 
