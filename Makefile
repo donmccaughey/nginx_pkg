@@ -5,7 +5,7 @@ TMP ?= $(abspath tmp)
 
 version := 1.22.0
 pcre2_version := 10.40
-zlib_version := 1.2.12
+zlib_version := 1.2.13
 revision := 1
 archs := arm64 x86_64
 
