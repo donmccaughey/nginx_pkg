@@ -190,11 +190,8 @@ $(pkg_nginx_files) : $(TMP)/pkg/% : $(TMP)/nginx/install/% | $$(dir $$@)
 pkg_nginx_conf := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
 		$(nginx_installed_conf))
 
-$(pkg_nginx_conf) : $(TMP)/pkg/% : $(TMP)/nginx/install/% | $$(dir $$@)
-	sed \
-		-e '1s/^/daemon off;/' \
-		-e '1G' \
-		$< > $@
+$(pkg_nginx_conf) : $(TMP)/pkg/% : $(TMP)/nginx/install/% patches/nginx.conf.patch | $$(dir $$@)
+	patch --unified -o $@ $< patches/nginx.conf.patch
 
 pkg_nginx_html := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
 		$(nginx_installed_html))

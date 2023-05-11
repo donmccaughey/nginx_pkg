@@ -1,0 +1,23 @@
+--- nginx/conf/nginx.conf	2023-04-10 18:45:34
++++ /usr/local/nginx/conf/nginx.conf	2023-02-05 13:24:25
+@@ -1,8 +1,9 @@
++daemon off;
+ 
+ #user  nobody;
+ worker_processes  1;
+ 
+ #error_log  logs/error.log;
+ #error_log  logs/error.log  notice;
+ #error_log  logs/error.log  info;
+ 
+@@ -109,9 +110,10 @@
+     #    ssl_prefer_server_ciphers  on;
+ 
+     #    location / {
+     #        root   html;
+     #        index  index.html index.htm;
+     #    }
+     #}
+ 
++    include /Users/*/Sites/*/nginx.conf;
+ }
