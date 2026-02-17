@@ -5,8 +5,8 @@ TMP ?= $(abspath tmp)
 
 version := 1.24.0
 pcre2_version := 10.42
-zlib_version := 1.3
-revision := 2
+zlib_version := 1.3.1
+revision := 3
 archs := arm64 x86_64
 
 rev := $(if $(patsubst 1,,$(revision)),-r$(revision),)
