@@ -24,6 +24,14 @@
 #include <openssl/engine.h>
 #endif
 #include <openssl/evp.h>
+#if (NGX_QUIC)
+#ifdef OPENSSL_IS_BORINGSSL
+#include <openssl/hkdf.h>
+#include <openssl/chacha.h>
+#else
+#include <openssl/kdf.h>
+#endif
+#endif
 #include <openssl/hmac.h>
 #ifndef OPENSSL_NO_OCSP
 #include <openssl/ocsp.h>
@@ -37,7 +45,7 @@
 
 #if (defined LIBRESSL_VERSION_NUMBER && OPENSSL_VERSION_NUMBER == 0x20000000L)
 #undef OPENSSL_VERSION_NUMBER
-#if (LIBRESSL_VERSION_NUMBER >= 0x2080000fL)
+#if (LIBRESSL_VERSION_NUMBER >= 0x3050000fL)
 #define OPENSSL_VERSION_NUMBER  0x1010000fL
 #else
 #define OPENSSL_VERSION_NUMBER  0x1000107fL
@@ -251,6 +259,7 @@ ngx_ssl_session_t *ngx_ssl_get0_session(ngx_connection_t *c);
      || n == X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE)
 
 ngx_int_t ngx_ssl_check_host(ngx_connection_t *c, ngx_str_t *name);
+ngx_int_t ngx_ssl_check_verify_context(ngx_connection_t *c, ngx_ssl_t *ssl);
 
 
 ngx_int_t ngx_ssl_get_protocol(ngx_connection_t *c, ngx_pool_t *pool,
@@ -291,6 +300,8 @@ ngx_int_t ngx_ssl_get_serial_number(ngx_connection_t *c, ngx_pool_t *pool,
     ngx_str_t *s);
 ngx_int_t ngx_ssl_get_fingerprint(ngx_connection_t *c, ngx_pool_t *pool,
     ngx_str_t *s);
+ngx_int_t ngx_ssl_get_fingerprint_sha256(ngx_connection_t *c, ngx_pool_t *pool,
+    ngx_str_t *s);
 ngx_int_t ngx_ssl_get_client_verify(ngx_connection_t *c, ngx_pool_t *pool,
     ngx_str_t *s);
 ngx_int_t ngx_ssl_get_client_v_start(ngx_connection_t *c, ngx_pool_t *pool,
@@ -302,6 +313,9 @@ ngx_int_t ngx_ssl_get_client_v_remain(ngx_connection_t *c, ngx_pool_t *pool,
 
 
 ngx_int_t ngx_ssl_handshake(ngx_connection_t *c);
+#if (NGX_DEBUG)
+void ngx_ssl_handshake_log(ngx_connection_t *c);
+#endif
 ssize_t ngx_ssl_recv(ngx_connection_t *c, u_char *buf, size_t size);
 ssize_t ngx_ssl_write(ngx_connection_t *c, u_char *data, size_t size);
 ssize_t ngx_ssl_recv_chain(ngx_connection_t *c, ngx_chain_t *cl, off_t limit);
@@ -319,6 +333,7 @@ extern int  ngx_ssl_server_conf_index;
 extern int  ngx_ssl_session_cache_index;
 extern int  ngx_ssl_ticket_keys_index;
 extern int  ngx_ssl_ocsp_index;
+extern int  ngx_ssl_trusted_list_index;
 extern int  ngx_ssl_certificate_index;
 extern int  ngx_ssl_next_certificate_index;
 extern int  ngx_ssl_certificate_name_index;

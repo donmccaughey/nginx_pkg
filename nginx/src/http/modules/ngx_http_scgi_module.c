@@ -1153,7 +1153,10 @@ ngx_http_scgi_process_header(ngx_http_request_t *r)
                 }
 
                 u->headers_in.status_n = status;
-                u->headers_in.status_line = *status_line;
+
+                if (status_line->len > 3) {
+                    u->headers_in.status_line = *status_line;
+                }
 
             } else if (u->headers_in.location) {
                 u->headers_in.status_n = 302;
@@ -1817,7 +1820,7 @@ ngx_http_scgi_init_params(ngx_conf_t *cf, ngx_http_scgi_loc_conf_t *conf,
             return NGX_ERROR;
         }
 
-        copy->code = (ngx_http_script_code_pt) (void *)
+        copy->code = (ngx_http_script_code_pt) (uintptr_t)
                                                  ngx_http_script_copy_len_code;
         copy->len = src[i].key.len + 1;
 
@@ -1827,7 +1830,7 @@ ngx_http_scgi_init_params(ngx_conf_t *cf, ngx_http_scgi_loc_conf_t *conf,
             return NGX_ERROR;
         }
 
-        copy->code = (ngx_http_script_code_pt) (void *)
+        copy->code = (ngx_http_script_code_pt) (uintptr_t)
                                                  ngx_http_script_copy_len_code;
         copy->len = src[i].skip_empty;
 

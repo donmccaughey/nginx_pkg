@@ -24,6 +24,7 @@
 #define NGX_HTTP_VERSION_10                1000
 #define NGX_HTTP_VERSION_11                1001
 #define NGX_HTTP_VERSION_20                2000
+#define NGX_HTTP_VERSION_30                3000
 
 #define NGX_HTTP_UNKNOWN                   0x00000001
 #define NGX_HTTP_GET                       0x00000002
@@ -181,6 +182,7 @@ typedef struct {
 
 typedef struct {
     ngx_list_t                        headers;
+    ngx_uint_t                        count;
 
     ngx_table_elt_t                  *host;
     ngx_table_elt_t                  *connection;
@@ -276,6 +278,7 @@ typedef struct {
 
     ngx_table_elt_t                  *cache_control;
     ngx_table_elt_t                  *link;
+    ngx_table_elt_t                  *age;
 
     ngx_str_t                        *override_charset;
 
@@ -304,6 +307,7 @@ typedef struct {
     ngx_chain_t                      *busy;
     ngx_http_chunked_t               *chunked;
     ngx_http_client_body_handler_pt   post_handler;
+    unsigned                          no_buffering:1;
     unsigned                          filter_need_buffering:1;
     unsigned                          last_sent:1;
     unsigned                          last_saved:1;
@@ -327,6 +331,8 @@ typedef struct {
     ngx_int_t                         nbusy;
 
     ngx_chain_t                      *free;
+
+    ngx_msec_t                        keepalive_timeout;
 
     unsigned                          ssl:1;
     unsigned                          proxy_protocol:1;
@@ -451,6 +457,7 @@ struct ngx_http_request_s {
 
     ngx_http_connection_t            *http_connection;
     ngx_http_v2_stream_t             *stream;
+    ngx_http_v3_parse_t              *v3_parse;
 
     ngx_http_log_handler_pt           log_handler;
 
@@ -535,6 +542,7 @@ struct ngx_http_request_s {
     unsigned                          keepalive:1;
     unsigned                          lingering_close:1;
     unsigned                          discard_body:1;
+    unsigned                          discarding_body:1;
     unsigned                          reading_body:1;
     unsigned                          internal:1;
     unsigned                          error_page:1;
@@ -543,10 +551,12 @@ struct ngx_http_request_s {
     unsigned                          request_complete:1;
     unsigned                          request_output:1;
     unsigned                          header_sent:1;
+    unsigned                          response_sent:1;
     unsigned                          expect_tested:1;
     unsigned                          root_tested:1;
     unsigned                          done:1;
     unsigned                          logged:1;
+    unsigned                          terminated:1;
 
     unsigned                          buffered:4;
 
@@ -594,8 +604,6 @@ struct ngx_http_request_s {
     u_char                           *schema_end;
     u_char                           *host_start;
     u_char                           *host_end;
-    u_char                           *port_start;
-    u_char                           *port_end;
 
     unsigned                          http_minor:16;
     unsigned                          http_major:16;

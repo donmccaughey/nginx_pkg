@@ -75,17 +75,20 @@ typedef struct {
     unsigned                   wildcard:1;
     unsigned                   ssl:1;
     unsigned                   http2:1;
+    unsigned                   quic:1;
 #if (NGX_HAVE_INET6)
     unsigned                   ipv6only:1;
 #endif
     unsigned                   deferred_accept:1;
     unsigned                   reuseport:1;
+    unsigned                   multipath:1;
     unsigned                   so_keepalive:2;
     unsigned                   proxy_protocol:1;
 
     int                        backlog;
     int                        rcvbuf;
     int                        sndbuf;
+    int                        type;
 #if (NGX_HAVE_SETFIB)
     int                        setfib;
 #endif
@@ -196,6 +199,8 @@ typedef struct {
 
     ngx_msec_t                  client_header_timeout;
 
+    ngx_uint_t                  max_headers;
+
     ngx_flag_t                  ignore_invalid_headers;
     ngx_flag_t                  merge_slashes;
     ngx_flag_t                  underscores_in_headers;
@@ -237,6 +242,7 @@ struct ngx_http_addr_conf_s {
 
     unsigned                   ssl:1;
     unsigned                   http2:1;
+    unsigned                   quic:1;
     unsigned                   proxy_protocol:1;
 };
 
@@ -266,6 +272,7 @@ typedef struct {
 
 typedef struct {
     ngx_int_t                  family;
+    ngx_int_t                  type;
     in_port_t                  port;
     ngx_array_t                addrs;     /* array of ngx_http_conf_addr_t */
 } ngx_http_conf_port_t;

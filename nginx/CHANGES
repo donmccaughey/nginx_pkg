@@ -1,7 +1,259 @@
 
-Changes with nginx 1.24.0                                        11 Apr 2023
+Changes with freenginx 1.28.0                                    22 Apr 2025
 
-    *) 1.24.x stable branch.
+    *) 1.28.x stable branch.
+
+
+Changes with freenginx 1.27.6                                    15 Apr 2025
+
+    *) Workaround: the X25519MLKEM768 group name was not shown in the
+       $ssl_curve and $ssl_curves variables when using OpenSSL 3.5.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       "proxy_ssl_password_file" directive was used along with variables in
+       the "proxy_ssl_certificate" or "proxy_ssl_certificate_key"
+       directives; the bug had appeared in 1.23.1.
+
+
+Changes with freenginx 1.27.5                                    08 Apr 2025
+
+    *) Feature: the "multipath" parameter of the "listen" directive.
+       Thanks to Maxime Dourov and Anthony Doeraene.
+
+    *) Change: SSL session reuse is no longer allowed between servers with
+       different certificates set by the "ssl_trusted_certificate" directive
+       if client SSL certificate verification is enabled.
+
+    *) Workaround: when using TLSv1.3 with OpenSSL 1.1.1e or newer, it was
+       possible to reuse an SSL session in a different virtual server
+       context, notably with different certificates set by the
+       "ssl_client_certificate" directive.
+
+    *) Workaround: "gzip filter failed to use preallocated memory" alerts
+       appeared in logs when using zlib-ng.
+
+
+Changes with freenginx 1.27.4                                    03 Sep 2024
+
+    *) Feature: the $ssl_client_fingerprint_sha256 variable.
+
+    *) Feature: the "Auth-SSL-Fingerprint-SHA256 header line is now passed
+       to the mail proxy authentication server.
+
+    *) Change: MIME type for the "js" extension has been changed to
+       "text/javascript", the "mjs" extension now uses the "text/javascript"
+       MIME type, and the "md" and "markdown" extensions now use the
+       "text/markdown" MIME type; the default value of the "charset_types"
+       directive now includes "text/javascript" and "text/markdown".
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       ngx_http_mp4_module was used; the bug had appeared in 1.5.13.
+
+    *) Bugfix: a segmentation fault might occur in a worker process when
+       handling requests with the "Expect: 100-continue" request header
+       line; the bug had appeared in 1.27.0.
+
+
+Changes with freenginx 1.27.3                                    13 Aug 2024
+
+    *) Change: now the "Age" backend response header line is taken into
+       account when caching.
+       Thanks to Hiroaki Nakamura.
+
+    *) Feature: the $upstream_cache_age variable.
+
+    *) Change: during graceful shutdown of old worker processes keepalive
+       connections are now closed only after timeout specified with the
+       "lingering_timeout" directive expires.
+
+    *) Feature: improvements in building on Windows.
+
+
+Changes with freenginx 1.27.2                                    09 Jul 2024
+
+    *) Feature: now maximum error logging rate can be limited with the
+       "rate" parameter of the "error_log" directive; by default the limit
+       is 1000 messages per second.
+
+    *) Bugfix: in resolver.
+       Thanks to Kirill A. Korinsky.
+
+    *) Bugfix: the "proxy_no_cache" directive was not checked when caching
+       errors.
+
+    *) Bugfix: a block used in the "stub" parameter of the "include" SSI
+       directive might be sent twice.
+
+
+Changes with freenginx 1.27.1                                    04 Jun 2024
+
+    *) Feature: the "max_headers" directive.
+       Thanks to Maksim Yevmenkin.
+
+    *) Feature: the $upstream_cache_key variable.
+       Thanks to Kirill A. Korinsky.
+
+    *) Feature: XOAUTH2 and OAUTHBEARER authentication mechanisms support in
+       the mail proxy module.
+       Thanks to Rob Mueller.
+
+    *) Bugfix: graceful shutdown of old worker processes might be delayed
+       when using HTTP/2.
+       Thanks to Kasei Wang.
+
+    *) Bugfix: a segmentation fault might occur in a worker process when
+       using HTTP/3.
+
+    *) Bugfix: in HTTP/3.
+
+    *) Bugfix: in the mail proxy module.
+
+
+Changes with freenginx 1.27.0                                    14 May 2024
+
+    *) Feature: updated descriptions of HTTP status codes.
+       Thanks to Michiel W. Beijen.
+
+    *) Change: now, if an error occurs during reading a request body, the
+       request body is automatically discarded, and for complex error
+       processing, such as proxying, it is no longer needed to explicitly
+       disable passing of the request body to the proxied server.
+
+    *) Change: the logging level of the "SSL alert number N" and "invalid
+       alert" SSL errors has been lowered from "crit" to "info".
+
+    *) Change: now freenginx always returns an error if a header name is not
+       followed by a colon.
+       Thanks to Maksim Yevmenkin.
+
+    *) Feature: the "off" parameter of the "pid" directive.
+
+    *) Feature: now during reconfiguration no attempt to recreate the PID
+       file is made if the name in the "pid" directive was changed, but
+       points to the same file via symlinks.
+
+    *) Workaround: "PID file ... not readable (yet?) after start" and
+       "Failed to parse PID from file..." errors might appear when starting
+       with systemd.
+
+    *) Bugfix: no error was written to the error log when a timeout occurred
+       during reading a request body.
+
+    *) Bugfix: redirecting errors with code 413 with the "error_page"
+       directive worked incorrectly when using HTTP/2 and HTTP/3.
+
+    *) Bugfix: freenginx could not be built on NetBSD 10.0.
+
+    *) Bugfix: in HTTP/3.
+
+
+Changes with freenginx 1.25.5                                    02 Apr 2024
+
+    *) Change: MIME type for the "bmp" extension has been changed to
+       "image/bmp", for the "rar" extension to "application/vnd.rar", and
+       the "deb" and "udeb" extensions now use the
+       "application/vnd.debian.binary-package" MIME type.
+       Thanks to Yuriy Izorkin.
+
+    *) Change: the "client_max_body_size" directive is now used to limit
+       total size of ignored chunk extensions and trailer headers when
+       reading a request body using chunked transfer encoding.
+       Thanks to Bartek Nowotarski.
+
+    *) Change: now at most one empty line is allowed before a request.
+
+    *) Feature: logging to syslog errors are now reported at most once per
+       second.
+
+    *) Feature: the "max_commands" directive in the mail proxy module.
+
+    *) Bugfix: incorrect server name might be returned in responses when
+       using the "server_tokens off" directive.
+       Thanks to Tatsuya Kaneko and Antanas Patašius.
+
+    *) Bugfix: when reading a request body from a fast connection reading
+       for a long time was possible.
+
+
+Changes with freenginx 1.25.4                                    20 Feb 2024
+
+    *) Change: now the "freenginx" name is used in responses.
+
+    *) Bugfix: "open socket left" alerts might appear in logs during worker
+       processes shutdown when using AIO.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if AIO
+       was used in subrequests.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       "image_filter" directive was used, and errors with code 415 were
+       redirected with the "error_page" directive.
+
+    *) Bugfix: a segmentation fault might occur in a worker process when
+       handling cached responses with the "X-Accel-Redirect" header.
+       Thanks to Jiří Setnička.
+
+    *) Bugfix: a segmentation fault might occur in a worker process when
+       using HTTP/3.
+
+    *) Bugfixes and improvements in HTTP/3.
+
+
+Changes with nginx 1.25.3                                        24 Oct 2023
+
+    *) Change: improved detection of misbehaving clients when using HTTP/2.
+
+    *) Feature: startup speedup when using a large number of locations.
+       Thanks to Yusuke Nojima.
+
+    *) Bugfix: a segmentation fault might occur in a worker process when
+       using HTTP/2 without SSL; the bug had appeared in 1.25.1.
+
+    *) Bugfix: the "Status" backend response header line with an empty
+       reason phrase was handled incorrectly.
+
+    *) Bugfix: memory leak during reconfiguration when using the PCRE2
+       library.
+       Thanks to ZhenZhong Wu.
+
+    *) Bugfixes and improvements in HTTP/3.
+
+
+Changes with nginx 1.25.2                                        15 Aug 2023
+
+    *) Feature: path MTU discovery when using HTTP/3.
+
+    *) Feature: TLS_AES_128_CCM_SHA256 cipher suite support when using
+       HTTP/3.
+
+    *) Change: now nginx uses appname "nginx" when loading OpenSSL
+       configuration.
+
+    *) Change: now nginx does not try to load OpenSSL configuration if the
+       --with-openssl option was used to built OpenSSL and the OPENSSL_CONF
+       environment variable is not set.
+
+    *) Bugfix: in the $body_bytes_sent variable when using HTTP/3.
+
+    *) Bugfix: in HTTP/3.
+
+
+Changes with nginx 1.25.1                                        13 Jun 2023
+
+    *) Feature: the "http2" directive, which enables HTTP/2 on a per-server
+       basis; the "http2" parameter of the "listen" directive is now
+       deprecated.
+
+    *) Change: HTTP/2 server push support has been removed.
+
+    *) Change: the deprecated "ssl" directive is not supported anymore.
+
+    *) Bugfix: in HTTP/3 when using OpenSSL.
+
+
+Changes with nginx 1.25.0                                        23 May 2023
+
+    *) Feature: experimental HTTP/3 support.
 
 
 Changes with nginx 1.23.4                                        28 Mar 2023

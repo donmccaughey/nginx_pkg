@@ -92,6 +92,13 @@ static ngx_command_t  ngx_mail_core_commands[] = {
       offsetof(ngx_mail_core_srv_conf_t, max_errors),
       NULL },
 
+    { ngx_string("max_commands"),
+      NGX_MAIL_MAIN_CONF|NGX_MAIL_SRV_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_num_slot,
+      NGX_MAIL_SRV_CONF_OFFSET,
+      offsetof(ngx_mail_core_srv_conf_t, max_commands),
+      NULL },
+
       ngx_null_command
 };
 
@@ -171,6 +178,7 @@ ngx_mail_core_create_srv_conf(ngx_conf_t *cf)
     cscf->resolver_timeout = NGX_CONF_UNSET_MSEC;
 
     cscf->max_errors = NGX_CONF_UNSET_UINT;
+    cscf->max_commands = NGX_CONF_UNSET_UINT;
 
     cscf->resolver = NGX_CONF_UNSET_PTR;
 
@@ -192,6 +200,7 @@ ngx_mail_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
                               30000);
 
     ngx_conf_merge_uint_value(conf->max_errors, prev->max_errors, 5);
+    ngx_conf_merge_uint_value(conf->max_commands, prev->max_commands, 1000);
 
     ngx_conf_merge_str_value(conf->server_name, prev->server_name, "");
 
@@ -445,6 +454,18 @@ ngx_mail_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                                "on this platform");
             return NGX_CONF_ERROR;
 #endif
+        }
+
+        if (ngx_strcmp(value[i].data, "multipath") == 0) {
+#if (NGX_HAVE_MULTIPATH)
+            ls->multipath = 1;
+            ls->bind = 1;
+#else
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "multipath is not supported "
+                               "on this platform, ignored");
+#endif
+            continue;
         }
 
         if (ngx_strcmp(value[i].data, "ssl") == 0) {

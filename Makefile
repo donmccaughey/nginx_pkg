@@ -3,10 +3,10 @@ INSTALLER_SIGNING_ID ?= Developer ID Installer: Donald McCaughey
 NOTARIZATION_KEYCHAIN_PROFILE ?= Donald McCaughey
 TMP ?= $(abspath tmp)
 
-version := 1.24.0
+version := 1.28.0
 pcre2_version := 10.47
 zlib_version := 1.3.1
-revision := 3
+revision := 1
 archs := arm64 x86_64
 
 rev := $(if $(patsubst 1,,$(revision)),-r$(revision),)
@@ -313,15 +313,19 @@ $(TMP)/build-report.txt : | $$(dir $$@)
 	printf 'Xcode Version: %s\n' "$(xcode)" >> $@
 	printf 'APP_SIGNING_ID: %s\n' "$(APP_SIGNING_ID)" >> $@
 	printf 'INSTALLER_SIGNING_ID: %s\n' "$(INSTALLER_SIGNING_ID)" >> $@
-	printf 'NOTARIZATION_KEYCHAIN_PROFILE: %s\n' "$(NOTARIZATION_KEYCHAIN_PROFILE)" >> $@
+	printf 'NOTARIZATION_KEYCHAIN_PROFILE: %s\n' \
+			"$(NOTARIZATION_KEYCHAIN_PROFILE)" >> $@
 	printf 'TMP directory: %s\n' "$(TMP)" >> $@
 	printf 'CFLAGS: %s\n' "$(CFLAGS)" >> $@
 	printf 'LINK: %s\n' "$(LINK)" >> $@
 	printf 'LDFLAGS: %s\n' "$(LDFLAGS)" >> $@
 	printf 'Tag: v%s-r%s\n' "$(version)" "$(revision)" >> $@
-	printf 'Tag Title: nginx %s for macOS rev %s\n' "$(version)" "$(revision)" >> $@
-	printf 'Tag Message: A signed and notarized universal installer package for `nginx` %s, built with PCRE2 %s and zlib %s.\n' \
-		"$(version)" "$(pcre2_version)" "$(zlib_version)" >> $@
+	printf 'Tag Title: freenginx %s' "$(version)" >> $@
+	printf ' for macOS rev %s\n' "$(revision)" >> $@
+	printf 'Tag Message: A signed and notarized universal installer' >> $@
+	printf ' package for `freenginx` %s,' "$(version)" >> $@
+	printf ' built with PCRE2 %s' "$(pcre2_version)" >> $@
+	printf ' and zlib %s.\n' "$(zlib_version)" >> $@
 
 $(TMP)/distribution.xml \
 $(TMP)/resources/welcome.html : $(TMP)/% : % | $$(dir $$@)

@@ -150,6 +150,9 @@ ngx_set_inherited_sockets(ngx_cycle_t *cycle)
 #if (NGX_HAVE_REUSEPORT)
     int                        reuseport;
 #endif
+#if (NGX_HAVE_MULTIPATH)
+    int                        protocol;
+#endif
 
     ls = cycle->listening.elts;
     for (i = 0; i < cycle->listening.nelts; i++) {
@@ -338,6 +341,25 @@ ngx_set_inherited_sockets(ngx_cycle_t *cycle)
 
 #endif
 
+#if (NGX_HAVE_MULTIPATH)
+
+        protocol = 0;
+        olen = sizeof(int);
+
+        if (getsockopt(ls[i].fd, SOL_SOCKET, SO_PROTOCOL,
+                       (void *) &protocol, &olen)
+            == -1)
+        {
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
+                          "getsockopt(SO_PROTOCOL) %V failed, ignored",
+                          &ls[i].addr_text);
+
+        } else {
+            ls[i].multipath = (protocol == IPPROTO_MPTCP) ? 1 : 0;
+        }
+
+#endif
+
 #if (NGX_HAVE_DEFERRED_ACCEPT && defined SO_ACCEPTFILTER)
 
         ngx_memzero(&af, sizeof(struct accept_filter_arg));
@@ -406,7 +428,7 @@ ngx_set_inherited_sockets(ngx_cycle_t *cycle)
 ngx_int_t
 ngx_open_listening_sockets(ngx_cycle_t *cycle)
 {
-    int               reuseaddr;
+    int               reuseaddr, proto;
     ngx_uint_t        i, tries, failed;
     ngx_err_t         err;
     ngx_log_t        *log;
@@ -436,7 +458,7 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
 
 #if (NGX_HAVE_REUSEPORT)
 
-            if (ls[i].add_reuseport) {
+            if (ls[i].add_reuseport || ls[i].reopen) {
 
                 /*
                  * to allow transition from a socket without SO_REUSEPORT
@@ -472,6 +494,18 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
 
                 ls[i].add_reuseport = 0;
             }
+
+            if (ls[i].reopen) {
+
+                /*
+                 * to allow transition to Multipath TCP we set SO_REUSEPORT
+                 * on the old socket, and then open a new one
+                 */
+
+                ls[i].fd = (ngx_socket_t) -1;
+                ls[i].inherited = 0;
+                ls[i].previous->remain = 0;
+            }
 #endif
 
             if (ls[i].fd != (ngx_socket_t) -1) {
@@ -487,7 +521,15 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                 continue;
             }
 
-            s = ngx_socket(ls[i].sockaddr->sa_family, ls[i].type, 0);
+            proto = 0;
+
+#if (NGX_HAVE_MULTIPATH)
+            if (ls[i].multipath) {
+                proto = IPPROTO_MPTCP;
+            }
+#endif
+
+            s = ngx_socket(ls[i].sockaddr->sa_family, ls[i].type, proto);
 
             if (s == (ngx_socket_t) -1) {
                 ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno,
@@ -517,7 +559,7 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
 
 #if (NGX_HAVE_REUSEPORT)
 
-            if (ls[i].reuseport && !ngx_test_config) {
+            if ((ls[i].reuseport || ls[i].reopen) && !ngx_test_config) {
                 int  reuseport;
 
                 reuseport = 1;
@@ -1014,6 +1056,78 @@ ngx_configure_listening_sockets(ngx_cycle_t *cycle)
         }
 
 #endif
+
+#if (NGX_HAVE_IP_MTU_DISCOVER)
+
+        if (ls[i].quic && ls[i].sockaddr->sa_family == AF_INET) {
+            value = IP_PMTUDISC_DO;
+
+            if (setsockopt(ls[i].fd, IPPROTO_IP, IP_MTU_DISCOVER,
+                           (const void *) &value, sizeof(int))
+                == -1)
+            {
+                ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
+                              "setsockopt(IP_MTU_DISCOVER) "
+                              "for %V failed, ignored",
+                              &ls[i].addr_text);
+            }
+        }
+
+#elif (NGX_HAVE_IP_DONTFRAG)
+
+        if (ls[i].quic && ls[i].sockaddr->sa_family == AF_INET) {
+            value = 1;
+
+            if (setsockopt(ls[i].fd, IPPROTO_IP, IP_DONTFRAG,
+                           (const void *) &value, sizeof(int))
+                == -1)
+            {
+                ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
+                              "setsockopt(IP_DONTFRAG) "
+                              "for %V failed, ignored",
+                              &ls[i].addr_text);
+            }
+        }
+
+#endif
+
+#if (NGX_HAVE_INET6)
+
+#if (NGX_HAVE_IPV6_MTU_DISCOVER)
+
+        if (ls[i].quic && ls[i].sockaddr->sa_family == AF_INET6) {
+            value = IPV6_PMTUDISC_DO;
+
+            if (setsockopt(ls[i].fd, IPPROTO_IPV6, IPV6_MTU_DISCOVER,
+                           (const void *) &value, sizeof(int))
+                == -1)
+            {
+                ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
+                              "setsockopt(IPV6_MTU_DISCOVER) "
+                              "for %V failed, ignored",
+                              &ls[i].addr_text);
+            }
+        }
+
+#elif (NGX_HAVE_IP_DONTFRAG)
+
+        if (ls[i].quic && ls[i].sockaddr->sa_family == AF_INET6) {
+            value = 1;
+
+            if (setsockopt(ls[i].fd, IPPROTO_IPV6, IPV6_DONTFRAG,
+                           (const void *) &value, sizeof(int))
+                == -1)
+            {
+                ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
+                              "setsockopt(IPV6_DONTFRAG) "
+                              "for %V failed, ignored",
+                              &ls[i].addr_text);
+            }
+        }
+
+#endif
+
+#endif
     }
 
     return;
@@ -1036,6 +1150,12 @@ ngx_close_listening_sockets(ngx_cycle_t *cycle)
 
     ls = cycle->listening.elts;
     for (i = 0; i < cycle->listening.nelts; i++) {
+
+#if (NGX_QUIC)
+        if (ls[i].quic) {
+            continue;
+        }
+#endif
 
         c = ls[i].connection;
 
@@ -1505,6 +1625,10 @@ ngx_connection_error(ngx_connection_t *c, ngx_err_t err, char *text)
     }
 #endif
 
+    if (err == NGX_EMSGSIZE && c->log_error == NGX_ERROR_IGNORE_EMSGSIZE) {
+        return 0;
+    }
+
     if (err == 0
         || err == NGX_ECONNRESET
 #if (NGX_WIN32)
@@ -1518,10 +1642,16 @@ ngx_connection_error(ngx_connection_t *c, ngx_err_t err, char *text)
         || err == NGX_ENETDOWN
         || err == NGX_ENETUNREACH
         || err == NGX_EHOSTDOWN
-        || err == NGX_EHOSTUNREACH)
+        || err == NGX_EHOSTUNREACH
+        || err == NGX_ENOBUFS)
     {
         switch (c->log_error) {
 
+        case NGX_ERROR_DEBUG:
+            level = NGX_LOG_DEBUG;
+            break;
+
+        case NGX_ERROR_IGNORE_EMSGSIZE:
         case NGX_ERROR_IGNORE_EINVAL:
         case NGX_ERROR_IGNORE_ECONNRESET:
         case NGX_ERROR_INFO:
@@ -1531,6 +1661,9 @@ ngx_connection_error(ngx_connection_t *c, ngx_err_t err, char *text)
         default:
             level = NGX_LOG_ERR;
         }
+
+    } else if (c->log_error == NGX_ERROR_DEBUG) {
+        level = NGX_LOG_DEBUG;
 
     } else {
         level = NGX_LOG_ALERT;
