@@ -54,36 +54,39 @@ LINK := $(CC) $(LDFLAGS)
 
 pcre2_dist := $(shell find pcre2 -type f -not -name .DS_Store)
 
-$(TMP)/pcre2-copied.stamp : $(pcre2_dist) | $(TMP)
+$(TMP)/copied-pcre2.stamp.txt : $(pcre2_dist) | $(TMP)
 	rm -rf $(TMP)/pcre2
 	cp -r pcre2 $(TMP)/pcre2
-	touch $@
+	date > $@
 
 
 ##### zlib dist ##########
 
 zlib_dist := $(shell find ./zlib -type f \! -name .DS_Store)
 
-$(TMP)/zlib-copied.stamp : $(zlib_dist) | $(TMP)
+$(TMP)/copied-zlib.stamp.txt : $(zlib_dist) | $(TMP)
 	rm -rf $(TMP)/zlib
 	cp -r zlib $(TMP)/zlib
-	touch $@
+	date > $@
 
 
 ##### nginx dist ##########
 
+nginx-dist := $(shell find nginx -type f -not -name .DS_Store)
+
+$(TMP)/copied-nginx.stamp.txt : $(nginx-dist) | $(TMP)
+	rm -rf $(TMP)/nginx
+	cp -r nginx $(TMP)/nginx
+	date > $@
+
+
 # configure
 
-$(TMP)/nginx/build :
-	mkdir -p $@
-
-$(TMP)/nginx/configured.stamp.txt : \
-		./nginx/configure \
-		$(TMP)/pcre2-copied.stamp \
-		$(TMP)/zlib-copied.stamp \
-		| $(TMP)/nginx/build
-	cd ./nginx && ./configure \
-		--builddir=$(TMP)/nginx/build \
+$(TMP)/configured.stamp.txt : \
+		$(TMP)/copied-nginx.stamp.txt \
+		$(TMP)/copied-pcre2.stamp.txt \
+		$(TMP)/copied-zlib.stamp.txt
+	cd $(TMP)/nginx && ./configure \
 		--with-http_gunzip_module \
 		--with-http_gzip_static_module \
 		--with-pcre=$(TMP)/pcre2 \
@@ -91,90 +94,70 @@ $(TMP)/nginx/configured.stamp.txt : \
 		--with-zlib=$(TMP)/zlib
 	date > $@
 
-./nginx/Makefile \
-$(TMP)/nginx/build/Makefile : $(TMP)/nginx/configured.stamp.txt
-	@:
-
-
 # build
 
-nginx_files := $(shell find ./nginx -type f \
-		\! -name Makefile \
-		\! -name .DS_Store \
-		)
-
-$(TMP)/nginx/built.stamp.txt : \
-		./nginx/Makefile \
-		$(TMP)/nginx/build/Makefile \
-		$(nginx_files)
-	cd ./nginx && $(MAKE) CFLAGS='$(CFLAGS)' LINK='$(LINK)'
+$(TMP)/built.stamp.txt : $(TMP)/configured.stamp.txt
+	cd $(TMP)/nginx && $(MAKE) CFLAGS='$(CFLAGS)' LINK='$(LINK)'
 	date > $@
-
-nginx_built_files := \
-	$(TMP)/nginx/build/nginx \
-	$(TMP)/nginx/build/nginx.8 
-
-$(nginx_built_files) : $(TMP)/nginx/built.stamp.txt
-	@:
 
 # install
 
-$(TMP)/nginx/install :
+$(TMP)/install :
 	mkdir -p $@
 
-$(TMP)/nginx/installed.stamp.txt : $(nginx_built_files) | $(TMP)/nginx/install
-	cd ./nginx \
+$(TMP)/installed.stamp.txt : $(TMP)/built.stamp.txt | $(TMP)/install
+	cd $(TMP)/nginx \
 		&& $(MAKE) \
-			DESTDIR=$(TMP)/nginx/install \
+			DESTDIR=$(TMP)/install \
 			CFLAGS='$(CFLAGS)' \
 			LINK='$(LINK)' \
 			install
 	date > $@
 
 nginx_installed_files := \
-	$(TMP)/nginx/install/usr/local/nginx/conf/fastcgi_params \
-	$(TMP)/nginx/install/usr/local/nginx/conf/fastcgi_params.default \
-	$(TMP)/nginx/install/usr/local/nginx/conf/fastcgi.conf \
-	$(TMP)/nginx/install/usr/local/nginx/conf/fastcgi.conf.default \
-	$(TMP)/nginx/install/usr/local/nginx/conf/koi-utf \
-	$(TMP)/nginx/install/usr/local/nginx/conf/koi-win \
-	$(TMP)/nginx/install/usr/local/nginx/conf/mime.types \
-	$(TMP)/nginx/install/usr/local/nginx/conf/mime.types.default \
-	$(TMP)/nginx/install/usr/local/nginx/conf/scgi_params \
-	$(TMP)/nginx/install/usr/local/nginx/conf/scgi_params.default \
-	$(TMP)/nginx/install/usr/local/nginx/conf/uwsgi_params \
-	$(TMP)/nginx/install/usr/local/nginx/conf/uwsgi_params.default \
-	$(TMP)/nginx/install/usr/local/nginx/conf/win-utf \
-	$(TMP)/nginx/install/usr/local/nginx/html/50x.html
+	$(TMP)/install/usr/local/nginx/conf/fastcgi_params \
+	$(TMP)/install/usr/local/nginx/conf/fastcgi_params.default \
+	$(TMP)/install/usr/local/nginx/conf/fastcgi.conf \
+	$(TMP)/install/usr/local/nginx/conf/fastcgi.conf.default \
+	$(TMP)/install/usr/local/nginx/conf/koi-utf \
+	$(TMP)/install/usr/local/nginx/conf/koi-win \
+	$(TMP)/install/usr/local/nginx/conf/mime.types \
+	$(TMP)/install/usr/local/nginx/conf/mime.types.default \
+	$(TMP)/install/usr/local/nginx/conf/scgi_params \
+	$(TMP)/install/usr/local/nginx/conf/scgi_params.default \
+	$(TMP)/install/usr/local/nginx/conf/uwsgi_params \
+	$(TMP)/install/usr/local/nginx/conf/uwsgi_params.default \
+	$(TMP)/install/usr/local/nginx/conf/win-utf \
+	$(TMP)/install/usr/local/nginx/html/50x.html
 
 nginx_installed_conf := \
-	$(TMP)/nginx/install/usr/local/nginx/conf/nginx.conf \
-	$(TMP)/nginx/install/usr/local/nginx/conf/nginx.conf.default
+	$(TMP)/install/usr/local/nginx/conf/nginx.conf \
+	$(TMP)/install/usr/local/nginx/conf/nginx.conf.default
 
 nginx_installed_html := \
-	$(TMP)/nginx/install/usr/local/nginx/html/index.html
+	$(TMP)/install/usr/local/nginx/html/index.html
 
 nginx_installed_dirs := \
-	$(TMP)/nginx/install/usr/local/nginx/logs \
-	$(TMP)/nginx/install/usr/local/nginx/sbin \
+	$(TMP)/install/usr/local/nginx/logs \
+	$(TMP)/install/usr/local/nginx/sbin \
 	$(sort $(dir $(nginx_installed_files) $(nginx_installed_conf) $(nginx_installed_html)))
 
-$(TMP)/nginx/install/usr/local/nginx/sbin/nginx \
+$(TMP)/install/usr/local/nginx/sbin/nginx \
 $(nginx_installed_files) \
 $(nginx_installed_conf) \
 $(nginx_installed_html) \
-$(nginx_installed_dirs) : $(TMP)/nginx/installed.stamp.txt
+$(nginx_installed_dirs) : $(TMP)/installed.stamp.txt
 	@:
 
-nginx_extra_files := $(TMP)/nginx/install/usr/local/nginx/man/man8/nginx.8
+nginx_extra_files := $(TMP)/install/usr/local/nginx/man/man8/nginx.8
 
 nginx_extra_dirs := $(sort $(dir $(nginx_extra_files)))
 
 $(nginx_extra_dirs) :
 	mkdir -p $@
 
-$(TMP)/nginx/install/usr/local/nginx/man/man8/nginx.8 : \
-		$(TMP)/nginx/build/nginx.8 \
+ $(TMP)/install/usr/local/nginx/man/man8/nginx.8 : \
+		$(TMP)/nginx/objs/nginx.8 \
 		| $$(dir $$@)
 	cp $< $@
 
@@ -183,28 +166,28 @@ $(TMP)/nginx/install/usr/local/nginx/man/man8/nginx.8 : \
 
 # nginx
 
-pkg_nginx_dirs := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
+pkg_nginx_dirs := $(patsubst $(TMP)/install/%,$(TMP)/pkg/%,\
 		$(nginx_installed_dirs) $(nginx_extra_dirs))
 
-$(pkg_nginx_dirs) : $(TMP)/pkg/% : $(TMP)/nginx/install/%
+$(pkg_nginx_dirs) : $(TMP)/pkg/% : $(TMP)/install/%
 	mkdir -p $@
 
-pkg_nginx_files := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
+pkg_nginx_files := $(patsubst $(TMP)/install/%,$(TMP)/pkg/%,\
 		$(nginx_installed_files) $(nginx_extra_files))
 
-$(pkg_nginx_files) : $(TMP)/pkg/% : $(TMP)/nginx/install/% | $$(dir $$@)
+$(pkg_nginx_files) : $(TMP)/pkg/% : $(TMP)/install/% | $$(dir $$@)
 	cp $< $@
 
-pkg_nginx_conf := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
+pkg_nginx_conf := $(patsubst $(TMP)/install/%,$(TMP)/pkg/%,\
 		$(nginx_installed_conf))
 
-$(pkg_nginx_conf) : $(TMP)/pkg/% : $(TMP)/nginx/install/% patches/nginx.conf.patch | $$(dir $$@)
+$(pkg_nginx_conf) : $(TMP)/pkg/% : $(TMP)/install/% patches/nginx.conf.patch | $$(dir $$@)
 	patch --unified -o $@ $< patches/nginx.conf.patch
 
-pkg_nginx_html := $(patsubst $(TMP)/nginx/install/%,$(TMP)/pkg/%,\
+pkg_nginx_html := $(patsubst $(TMP)/install/%,$(TMP)/pkg/%,\
 		$(nginx_installed_html))
 
-$(pkg_nginx_html) : $(TMP)/pkg/% : $(TMP)/nginx/install/% ./footer.html | $$(dir $$@)
+$(pkg_nginx_html) : $(TMP)/pkg/% : $(TMP)/install/% ./footer.html | $$(dir $$@)
 	N=$$'\n'; \
 	sed \
 		-e "/<\/body>/{ x $$N r ./footer.html$$N }" \
@@ -217,7 +200,7 @@ $(pkg_nginx_html) : $(TMP)/pkg/% : $(TMP)/nginx/install/% ./footer.html | $$(dir
 		-e 's/{{version}}/$(version)/g'\
 		-i '' $@
 
-$(TMP)/pkg/usr/local/nginx/sbin/nginx : $(TMP)/nginx/install/usr/local/nginx/sbin/nginx | $$(dir $$@)
+$(TMP)/pkg/usr/local/nginx/sbin/nginx : $(TMP)/install/usr/local/nginx/sbin/nginx | $$(dir $$@)
 	cp $< $@
 	xcrun codesign \
 		--sign "$(APP_SIGNING_ID)" \
