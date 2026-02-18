@@ -78,6 +78,8 @@ $(TMP)/nginx/configured.stamp.txt : \
 	cp -r ./zlib $(TMP)/zlib
 	cd ./nginx && ./configure \
 		--builddir=$(TMP)/nginx/build \
+		--with-http_gunzip_module \
+		--with-http_gzip_static_module \
 		--with-pcre=$(TMP)/pcre2 \
 		--with-pcre-jit \
 		--with-zlib=$(TMP)/zlib
