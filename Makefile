@@ -52,12 +52,22 @@ LINK := $(CC) $(LDFLAGS)
 
 ##### pcre2 dist ##########
 
-pcre2_dist := $(shell find ./pcre2 -type f \! -name .DS_Store)
+pcre2_dist := $(shell find pcre2 -type f -not -name .DS_Store)
+
+$(TMP)/pcre2-copied.stamp : $(pcre2_dist) | $(TMP)
+	rm -rf $(TMP)/pcre2
+	cp -r pcre2 $(TMP)/pcre2
+	touch $@
 
 
 ##### zlib dist ##########
 
 zlib_dist := $(shell find ./zlib -type f \! -name .DS_Store)
+
+$(TMP)/zlib-copied.stamp : $(zlib_dist) | $(TMP)
+	rm -rf $(TMP)/zlib
+	cp -r zlib $(TMP)/zlib
+	touch $@
 
 
 ##### nginx dist ##########
@@ -69,13 +79,9 @@ $(TMP)/nginx/build :
 
 $(TMP)/nginx/configured.stamp.txt : \
 		./nginx/configure \
-		$(pcre2_dist) \
-		$(zlib_dist) \
+		$(TMP)/pcre2-copied.stamp \
+		$(TMP)/zlib-copied.stamp \
 		| $(TMP)/nginx/build
-	rm -rf $(TMP)/pcre2
-	cp -r ./pcre2 $(TMP)/pcre2
-	rm -rf $(TMP)/zlib
-	cp -r ./zlib $(TMP)/zlib
 	cd ./nginx && ./configure \
 		--builddir=$(TMP)/nginx/build \
 		--with-http_gunzip_module \
