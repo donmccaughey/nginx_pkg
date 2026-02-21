@@ -41,22 +41,18 @@ check :
 	xcrun stapler validate nginx-$(ver).pkg
 
 
-##### compilation flags ##########
-
-arch_flags = $(patsubst %,-arch %,$(archs))
-
-CFLAGS += $(arch_flags)
-LDFLAGS += $(arch_flags)
-LINK := $(CC) $(LDFLAGS)
-
-
 ##### pcre2 dist ##########
 
 pcre2_dist := $(shell find pcre2 -type f -not -name .DS_Store)
 
-$(TMP)/copied-pcre2.stamp.txt : $(pcre2_dist) | $(TMP)
-	rm -rf $(TMP)/pcre2
-	cp -r pcre2 $(TMP)/pcre2
+$(TMP)/arm64/copied-pcre2.stamp.txt : $(pcre2_dist) | $$(dir $$@)
+	rm -rf $(TMP)/arm64/pcre2
+	cp -r pcre2 $(TMP)/arm64/pcre2
+	date > $@
+
+$(TMP)/x86_64/copied-pcre2.stamp.txt : $(pcre2_dist) | $$(dir $$@)
+	rm -rf $(TMP)/x86_64/pcre2
+	cp -r pcre2 $(TMP)/x86_64/pcre2
 	date > $@
 
 
@@ -64,55 +60,122 @@ $(TMP)/copied-pcre2.stamp.txt : $(pcre2_dist) | $(TMP)
 
 zlib_dist := $(shell find ./zlib -type f \! -name .DS_Store)
 
-$(TMP)/copied-zlib.stamp.txt : $(zlib_dist) | $(TMP)
-	rm -rf $(TMP)/zlib
-	cp -r zlib $(TMP)/zlib
+$(TMP)/arm64/copied-zlib.stamp.txt : $(zlib_dist) | $$(dir $$@)
+	rm -rf $(TMP)/arm64/zlib
+	cp -r zlib $(TMP)/arm64/zlib
+	date > $@
+
+$(TMP)/x86_64/copied-zlib.stamp.txt : $(zlib_dist) | $$(dir $$@)
+	rm -rf $(TMP)/x86_64/zlib
+	cp -r zlib $(TMP)/x86_64/zlib
 	date > $@
 
 
 ##### nginx dist ##########
 
-nginx-dist := $(shell find nginx -type f -not -name .DS_Store)
+nginx_dist := $(shell find nginx -type f -not -name .DS_Store)
 
-$(TMP)/copied-nginx.stamp.txt : $(nginx-dist) | $(TMP)
-	rm -rf $(TMP)/nginx
-	cp -r nginx $(TMP)/nginx
+$(TMP)/arm64/copied-nginx.stamp.txt : $(nginx_dist) | $$(dir $$@)
+	rm -rf $(TMP)/arm64/nginx
+	cp -r nginx $(TMP)/arm64/nginx
+	date > $@
+
+$(TMP)/x86_64/copied-nginx.stamp.txt : $(nginx_dist) | $$(dir $$@)
+	rm -rf $(TMP)/x86_64/nginx
+	cp -r nginx $(TMP)/x86_64/nginx
 	date > $@
 
 
 # configure
 
-$(TMP)/configured.stamp.txt : \
-		$(TMP)/copied-nginx.stamp.txt \
-		$(TMP)/copied-pcre2.stamp.txt \
-		$(TMP)/copied-zlib.stamp.txt
-	cd $(TMP)/nginx && ./configure \
+nginx_common_config_options = \
 		--with-http_gunzip_module \
 		--with-http_gzip_static_module \
-		--with-pcre=$(TMP)/pcre2 \
-		--with-pcre-jit \
-		--with-zlib=$(TMP)/zlib
+		--with-pcre-jit
+
+$(TMP)/arm64/configured.stamp.txt : \
+		$(TMP)/arm64/copied-pcre2.stamp.txt \
+		$(TMP)/arm64/copied-zlib.stamp.txt \
+		$(TMP)/arm64/copied-nginx.stamp.txt
+	cd $(TMP)/arm64/nginx \
+			&& ./configure \
+					$(nginx_common_config_options) \
+					--with-pcre=$(TMP)/arm64/pcre2 \
+					--with-zlib=$(TMP)/arm64/zlib
 	date > $@
+
+$(TMP)/x86_64/configured.stamp.txt : \
+		$(TMP)/x86_64/copied-pcre2.stamp.txt \
+		$(TMP)/x86_64/copied-zlib.stamp.txt \
+		$(TMP)/x86_64/copied-nginx.stamp.txt	
+	cd $(TMP)/x86_64/nginx \
+			&& ./configure \
+					$(nginx_common_config_options) \
+					--with-pcre=$(TMP)/x86_64/pcre2 \
+					--with-zlib=$(TMP)/x86_64/zlib
+	date > $@
+
 
 # build
 
-$(TMP)/built.stamp.txt : $(TMP)/configured.stamp.txt
-	cd $(TMP)/nginx && $(MAKE) CFLAGS='$(CFLAGS)' LINK='$(LINK)'
+$(TMP)/arm64/built.stamp.txt : $(TMP)/arm64/configured.stamp.txt
+	cd $(TMP)/arm64/nginx \
+			&& $(MAKE) CFLAGS='-arch arm64' LINK='$(CC) -arch arm64'
 	date > $@
+
+$(TMP)/x86_64/built.stamp.txt : $(TMP)/x86_64/configured.stamp.txt
+	cd $(TMP)/x86_64/nginx \
+			&& $(MAKE) CFLAGS='-arch x86_64' LINK='$(CC) -arch x86_64'
+	date > $@
+
 
 # install
 
-$(TMP)/install :
+$(TMP)/install \
+$(TMP)/arm64/install \
+$(TMP)/x86_64/install :
 	mkdir -p $@
 
-$(TMP)/installed.stamp.txt : $(TMP)/built.stamp.txt | $(TMP)/install
-	cd $(TMP)/nginx \
+$(TMP)/arm64/installed.stamp.txt : \
+		$(TMP)/arm64/built.stamp.txt \
+		| $(TMP)/arm64/install
+	cd $(TMP)/arm64/nginx \
 		&& $(MAKE) \
-			DESTDIR=$(TMP)/install \
-			CFLAGS='$(CFLAGS)' \
-			LINK='$(LINK)' \
+			DESTDIR=$(TMP)/arm64/install \
+			CFLAGS='-arch arm64' \
+			LINK='$(CC) -arch arm64' \
 			install
 	date > $@
+
+$(TMP)/x86_64/installed.stamp.txt : \
+		$(TMP)/x86_64/built.stamp.txt \
+		| $(TMP)/x86_64/install
+	cd $(TMP)/x86_64/nginx \
+		&& $(MAKE) \
+			DESTDIR=$(TMP)/x86_64/install \
+			CFLAGS='-arch x86_64' \
+			LINK='$(CC) -arch x86_64' \
+			install
+	date > $@
+
+
+$(TMP)/installed.stamp.txt : \
+		$(TMP)/arm64/installed.stamp.txt \
+		$(TMP)/x86_64/installed.stamp.txt \
+		$(TMP)/install/usr/local/nginx/man/man8/nginx.8
+	rm -rf $(TMP)/install
+	cp -r $(TMP)/arm64/install/ $(TMP)/install/
+	mkdir -p $(TMP)/install/usr/local/nginx/man/man8
+	cp \
+		$(TMP)/arm64/nginx/objs/nginx.8 \
+		$(TMP)/install/usr/local/nginx/man/man8/nginx.8
+	rm -f $(TMP)/install/usr/local/nginx/sbin/nginx
+	lipo \
+		-create \
+			$(TMP)/arm64/install/usr/local/nginx/sbin/nginx \
+			$(TMP)/x86_64/install/usr/local/nginx/sbin/nginx \
+		-output $(TMP)/install/usr/local/nginx/sbin/nginx
+	mkdir -p $(TMP)/install/usr/local/nginx/man/man8
 
 nginx_installed_files := \
 	$(TMP)/install/usr/local/nginx/conf/fastcgi_params \
@@ -128,7 +191,8 @@ nginx_installed_files := \
 	$(TMP)/install/usr/local/nginx/conf/uwsgi_params \
 	$(TMP)/install/usr/local/nginx/conf/uwsgi_params.default \
 	$(TMP)/install/usr/local/nginx/conf/win-utf \
-	$(TMP)/install/usr/local/nginx/html/50x.html
+	$(TMP)/install/usr/local/nginx/html/50x.html \
+	$(TMP)/install/usr/local/nginx/man/man8/nginx.8
 
 nginx_installed_conf := \
 	$(TMP)/install/usr/local/nginx/conf/nginx.conf \
@@ -140,7 +204,11 @@ nginx_installed_html := \
 nginx_installed_dirs := \
 	$(TMP)/install/usr/local/nginx/logs \
 	$(TMP)/install/usr/local/nginx/sbin \
-	$(sort $(dir $(nginx_installed_files) $(nginx_installed_conf) $(nginx_installed_html)))
+	$(sort \
+			$(dir \
+					$(nginx_installed_files) \
+					$(nginx_installed_conf)\
+				   	$(nginx_installed_html)))
 
 $(TMP)/install/usr/local/nginx/sbin/nginx \
 $(nginx_installed_files) \
@@ -148,18 +216,6 @@ $(nginx_installed_conf) \
 $(nginx_installed_html) \
 $(nginx_installed_dirs) : $(TMP)/installed.stamp.txt
 	@:
-
-nginx_extra_files := $(TMP)/install/usr/local/nginx/man/man8/nginx.8
-
-nginx_extra_dirs := $(sort $(dir $(nginx_extra_files)))
-
-$(nginx_extra_dirs) :
-	mkdir -p $@
-
- $(TMP)/install/usr/local/nginx/man/man8/nginx.8 : \
-		$(TMP)/nginx/objs/nginx.8 \
-		| $$(dir $$@)
-	cp $< $@
 
 
 ##### pkg ##########
@@ -172,8 +228,8 @@ pkg_nginx_dirs := $(patsubst $(TMP)/install/%,$(TMP)/pkg/%,\
 $(pkg_nginx_dirs) : $(TMP)/pkg/% : $(TMP)/install/%
 	mkdir -p $@
 
-pkg_nginx_files := $(patsubst $(TMP)/install/%,$(TMP)/pkg/%,\
-		$(nginx_installed_files) $(nginx_extra_files))
+pkg_nginx_files := $(patsubst \
+		$(TMP)/install/%,$(TMP)/pkg/%,$(nginx_installed_files))
 
 $(pkg_nginx_files) : $(TMP)/pkg/% : $(TMP)/install/% | $$(dir $$@)
 	cp $< $@
@@ -181,13 +237,17 @@ $(pkg_nginx_files) : $(TMP)/pkg/% : $(TMP)/install/% | $$(dir $$@)
 pkg_nginx_conf := $(patsubst $(TMP)/install/%,$(TMP)/pkg/%,\
 		$(nginx_installed_conf))
 
-$(pkg_nginx_conf) : $(TMP)/pkg/% : $(TMP)/install/% patches/nginx.conf.patch | $$(dir $$@)
+$(pkg_nginx_conf) : $(TMP)/pkg/% : $(TMP)/install/% \
+			patches/nginx.conf.patch \
+			| $$(dir $$@)
 	patch --unified -o $@ $< patches/nginx.conf.patch
 
 pkg_nginx_html := $(patsubst $(TMP)/install/%,$(TMP)/pkg/%,\
 		$(nginx_installed_html))
 
-$(pkg_nginx_html) : $(TMP)/pkg/% : $(TMP)/install/% ./footer.html | $$(dir $$@)
+$(pkg_nginx_html) : $(TMP)/pkg/% : $(TMP)/install/% \
+			./footer.html \
+			| $$(dir $$@)
 	N=$$'\n'; \
 	sed \
 		-e "/<\/body>/{ x $$N r ./footer.html$$N }" \
@@ -200,7 +260,9 @@ $(pkg_nginx_html) : $(TMP)/pkg/% : $(TMP)/install/% ./footer.html | $$(dir $$@)
 		-e 's/{{version}}/$(version)/g'\
 		-i '' $@
 
-$(TMP)/pkg/usr/local/nginx/sbin/nginx : $(TMP)/install/usr/local/nginx/sbin/nginx | $$(dir $$@)
+$(TMP)/pkg/usr/local/nginx/sbin/nginx : \
+			$(TMP)/install/usr/local/nginx/sbin/nginx \
+			| $$(dir $$@)
 	cp $< $@
 	xcrun codesign \
 		--sign "$(APP_SIGNING_ID)" \
@@ -209,7 +271,8 @@ $(TMP)/pkg/usr/local/nginx/sbin/nginx : $(TMP)/install/usr/local/nginx/sbin/ngin
 
 # install
 
-install_dirs := $(shell find ./install -type d \! -path ./install \! -name .DS_Store)
+install_dirs := $(shell \
+		find ./install -type d \! -path ./install \! -name .DS_Store)
 
 pkg_install_dirs := $(patsubst ./install/%,$(TMP)/pkg/%,$(install_dirs))
 
@@ -307,9 +370,6 @@ $(TMP)/build-report.txt : | $$(dir $$@)
 	printf 'NOTARIZATION_KEYCHAIN_PROFILE: %s\n' \
 			"$(NOTARIZATION_KEYCHAIN_PROFILE)" >> $@
 	printf 'TMP directory: %s\n' "$(TMP)" >> $@
-	printf 'CFLAGS: %s\n' "$(CFLAGS)" >> $@
-	printf 'LINK: %s\n' "$(LINK)" >> $@
-	printf 'LDFLAGS: %s\n' "$(LDFLAGS)" >> $@
 	printf 'Tag: v%s-r%s\n' "$(version)" "$(revision)" >> $@
 	printf 'Tag Title: freenginx %s' "$(version)" >> $@
 	printf ' for macOS rev %s\n' "$(revision)" >> $@
@@ -337,6 +397,8 @@ $(TMP)/resources/license.html : $(TMP)/% : % | $$(dir $$@)
 	cp $< $@
 
 $(TMP) \
+$(TMP)/arm64 \
+$(TMP)/x86_64 \
 $(TMP)/resources : 
 	mkdir -p $@
 
@@ -362,7 +424,9 @@ $(TMP)/notarized.stamp.txt : $(TMP)/notarization-log.json | $$(dir $$@)
 	test "$$(jq --raw-output '.status' < $<)" = "Accepted"
 	date > $@
 
-nginx-$(ver).pkg : $(TMP)/nginx-$(ver)-unnotarized.pkg $(TMP)/notarized.stamp.txt
+nginx-$(ver).pkg : \
+		$(TMP)/nginx-$(ver)-unnotarized.pkg 
+		$(TMP)/notarized.stamp.txt
 	cp $< $@
 	xcrun stapler staple $@
 
