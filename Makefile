@@ -38,13 +38,7 @@ clean :
 
 
 .PHONY : check
-check :
-	test "$(shell lipo -archs $(TMP)/pkg/usr/local/nginx/sbin/nginx)" = "x86_64 arm64"
-	test "$(shell ./tools/dylibs --no-sys-libs --count $(TMP)/pkg/usr/local/nginx/sbin/nginx) dylibs" = "0 dylibs"
-	codesign --verify --strict $(TMP)/pkg/usr/local/nginx/sbin/nginx
-	pkgutil --check-signature nginx-$(ver).pkg
-	spctl --assess --type install nginx-$(ver).pkg
-	xcrun stapler validate nginx-$(ver).pkg
+check : $(TMP)/checked-package.stamp.txt
 
 
 ##### openssl dist ##########
@@ -458,3 +452,11 @@ nginx-$(ver).pkg : \
 		$(TMP)/notarized.stamp.txt
 	cp $< $@
 	xcrun stapler staple $@
+
+$(TMP)/checked-package.stamp.txt : nginx-$(ver).pkg
+	test "$(shell lipo -archs $(TMP)/pkg/usr/local/nginx/sbin/nginx)" = "x86_64 arm64"
+	test "$(shell ./tools/dylibs --no-sys-libs --count $(TMP)/pkg/usr/local/nginx/sbin/nginx) dylibs" = "0 dylibs"
+	codesign --verify --strict $(TMP)/pkg/usr/local/nginx/sbin/nginx
+	pkgutil --check-signature nginx-$(ver).pkg
+	spctl --assess --type install nginx-$(ver).pkg
+	xcrun stapler validate nginx-$(ver).pkg
