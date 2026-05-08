@@ -11,6 +11,11 @@ revision := 1
 archs := arm64 x86_64
 
 rev := $(if $(patsubst 1,,$(revision)),-r$(revision),)
+tag := v$(version)-r$(revision)
+tag-message := A signed and notarized universal installer package for \
+	\`freenginx\` $(version) built with OpenSSL $(openssl_version), PCRE2 \
+	$(pcre2_version) and zlib $(zlib_version).
+tag-title := freenginx $(version) for macOS rev $(revision)
 ver := $(version)$(rev)
 
 
@@ -128,7 +133,7 @@ $(TMP)/x86_64/configured.stamp.txt : \
 		$(TMP)/x86_64/copied-openssl.stamp.txt \
 		$(TMP)/x86_64/copied-pcre2.stamp.txt \
 		$(TMP)/x86_64/copied-zlib.stamp.txt \
-		$(TMP)/x86_64/copied-nginx.stamp.txt	
+		$(TMP)/x86_64/copied-nginx.stamp.txt
 	cd $(TMP)/x86_64/nginx \
 			&& ./configure \
 					$(nginx_common_config_options) \
@@ -397,14 +402,9 @@ $(TMP)/build-report.txt : | $$(dir $$@)
 	printf 'NOTARIZATION_KEYCHAIN_PROFILE: %s\n' \
 			"$(NOTARIZATION_KEYCHAIN_PROFILE)" >> $@
 	printf 'TMP directory: %s\n' "$(TMP)" >> $@
-	printf 'Tag: v%s-r%s\n' "$(version)" "$(revision)" >> $@
-	printf 'Tag Title: freenginx %s' "$(version)" >> $@
-	printf ' for macOS rev %s\n' "$(revision)" >> $@
-	printf 'Tag Message: A signed and notarized universal installer' >> $@
-	printf ' package for `freenginx` %s,' "$(version)" >> $@
-	printf ' built with OpenSSL %s,' "$(openssl_version)" >> $@
-	printf ' PCRE2 %s' "$(pcre2_version)" >> $@
-	printf ' and zlib %s.\n' "$(zlib_version)" >> $@
+	printf 'Tag: %s\n' "$(tag)" >> $@
+	printf 'Tag Title: %s\n' "$(tag-title)" >> $@
+	printf 'Tag Message: %s\n' "$(tag-message)" >> $@
 
 $(TMP)/distribution.xml \
 $(TMP)/resources/welcome.html : $(TMP)/% : % | $$(dir $$@)
@@ -428,7 +428,7 @@ $(TMP)/resources/license.html : $(TMP)/% : % | $$(dir $$@)
 $(TMP) \
 $(TMP)/arm64 \
 $(TMP)/x86_64 \
-$(TMP)/resources : 
+$(TMP)/resources :
 	mkdir -p $@
 
 
@@ -458,4 +458,3 @@ nginx-$(ver).pkg : \
 		$(TMP)/notarized.stamp.txt
 	cp $< $@
 	xcrun stapler staple $@
-
