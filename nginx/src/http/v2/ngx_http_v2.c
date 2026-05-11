@@ -51,6 +51,8 @@
 
 static void ngx_http_v2_read_handler(ngx_event_t *rev);
 static void ngx_http_v2_write_handler(ngx_event_t *wev);
+static ngx_int_t ngx_http_v2_send_min_rate(ngx_http_v2_connection_t *h2c,
+    off_t sent);
 static void ngx_http_v2_handle_connection(ngx_http_v2_connection_t *h2c);
 static void ngx_http_v2_lingering_close(ngx_connection_t *c);
 static void ngx_http_v2_lingering_close_handler(ngx_event_t *rev);
@@ -460,8 +462,8 @@ ngx_http_v2_write_handler(ngx_event_t *wev)
     h2c = c->data;
 
     if (wev->timedout) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                       "http2 write event timed out");
+        ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT,
+                      "client timed out");
         c->error = 1;
         c->timedout = 1;
         ngx_http_v2_finalize_connection(h2c, 0);
@@ -503,6 +505,7 @@ ngx_int_t
 ngx_http_v2_send_output_queue(ngx_http_v2_connection_t *h2c)
 {
     int                        tcp_nodelay;
+    off_t                      sent;
     ngx_chain_t               *cl;
     ngx_event_t               *wev;
     ngx_connection_t          *c;
@@ -536,6 +539,8 @@ ngx_http_v2_send_output_queue(ngx_http_v2_connection_t *h2c)
                        out, out->stream ? out->stream->node->id : 0,
                        out->blocked, out->length);
     }
+
+    sent = c->sent;
 
     cl = c->send_chain(c, cl, 0);
 
@@ -592,7 +597,10 @@ ngx_http_v2_send_output_queue(ngx_http_v2_connection_t *h2c)
     h2c->last_out = frame;
 
     if (!wev->ready) {
-        ngx_add_timer(wev, clcf->send_timeout);
+        if (ngx_http_v2_send_min_rate(h2c, c->sent - sent)) {
+            ngx_add_timer(wev, clcf->send_timeout);
+        }
+
         return NGX_AGAIN;
     }
 
@@ -611,6 +619,52 @@ error:
     }
 
     return NGX_ERROR;
+}
+
+
+static ngx_int_t
+ngx_http_v2_send_min_rate(ngx_http_v2_connection_t *h2c, off_t sent)
+{
+    ngx_msec_t                 now;
+    ngx_msec_int_t             ms;
+    ngx_connection_t          *c;
+    ngx_http_core_loc_conf_t  *clcf;
+
+    c = h2c->connection;
+
+    clcf = ngx_http_get_module_loc_conf(h2c->http_connection->conf_ctx,
+                                        ngx_http_core_module);
+
+    if (clcf->send_min_rate == 0) {
+        return (sent > 0 || !c->write->timer_set);
+    }
+
+    now = ngx_current_msec;
+
+    if (h2c->send_min_last == 0 || !c->write->timer_set) {
+        h2c->send_min_last = now;
+        h2c->send_min_excess = 0;
+        return 1;
+    }
+
+    ms = (ngx_msec_int_t) (now - h2c->send_min_last);
+    ms = ngx_max(ms, 0);
+
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                   "http2 min rate: %O, %O, %M",
+                   sent, h2c->send_min_excess, ms);
+
+    if (h2c->send_min_excess + sent
+        > (off_t) clcf->send_min_rate * ms / 1000)
+    {
+        h2c->send_min_last = now;
+        h2c->send_min_excess = 0;
+        return 1;
+    }
+
+    h2c->send_min_excess += sent;
+
+    return 0;
 }
 
 
@@ -711,8 +765,7 @@ ngx_http_v2_lingering_close(ngx_connection_t *c)
     }
 
     if (h2c->lingering_time == 0) {
-        h2c->lingering_time = ngx_time()
-                              + (time_t) (clcf->lingering_time / 1000);
+        h2c->lingering_time = ngx_current_msec + clcf->lingering_time;
     }
 
 #if (NGX_HTTP_SSL)
@@ -752,6 +805,10 @@ ngx_http_v2_lingering_close(ngx_connection_t *c)
     }
 
     if (ngx_shutdown_socket(c->fd, NGX_WRITE_SHUTDOWN) == -1) {
+#if (defined __NetBSD__)
+        /* NetBSD returns EINVAL if the connection was reset */
+        c->log_error = NGX_ERROR_IGNORE_EINVAL;
+#endif
         ngx_connection_error(c, ngx_socket_errno,
                              ngx_shutdown_socket_n " failed");
         ngx_http_close_connection(c);
@@ -790,7 +847,7 @@ ngx_http_v2_lingering_close_handler(ngx_event_t *rev)
         return;
     }
 
-    timer = (ngx_msec_t) h2c->lingering_time - (ngx_msec_t) ngx_time();
+    timer = h2c->lingering_time - ngx_current_msec;
     if ((ngx_msec_int_t) timer <= 0) {
         ngx_http_close_connection(c);
         return;
@@ -819,7 +876,6 @@ ngx_http_v2_lingering_close_handler(ngx_event_t *rev)
 
     clcf = ngx_http_get_module_loc_conf(h2c->http_connection->conf_ctx,
                                         ngx_http_core_module);
-    timer *= 1000;
 
     if (timer > clcf->lingering_timeout) {
         timer = clcf->lingering_timeout;
@@ -3934,7 +3990,7 @@ ngx_http_v2_read_request_body(ngx_http_request_t *r)
     }
 
     if (!buf) {
-        ngx_add_timer(r->connection->read, clcf->client_body_timeout);
+        ngx_http_request_body_timeout(r, 0);
     }
 
     r->read_event_handler = ngx_http_v2_read_client_request_body_handler;
@@ -3948,11 +4004,11 @@ static ngx_int_t
 ngx_http_v2_process_request_body(ngx_http_request_t *r, u_char *pos,
     size_t size, ngx_uint_t last, ngx_uint_t flush)
 {
-    size_t                     n;
-    ngx_int_t                  rc;
-    ngx_connection_t          *fc;
-    ngx_http_request_body_t   *rb;
-    ngx_http_core_loc_conf_t  *clcf;
+    off_t                     bytes;
+    size_t                    n;
+    ngx_int_t                 rc;
+    ngx_connection_t         *fc;
+    ngx_http_request_body_t  *rb;
 
     fc = r->connection;
     rb = r->request_body;
@@ -3963,6 +4019,8 @@ ngx_http_v2_process_request_body(ngx_http_request_t *r, u_char *pos,
     if (size == 0 && !last && !flush) {
         return NGX_AGAIN;
     }
+
+    bytes = 0;
 
     for ( ;; ) {
         for ( ;; ) {
@@ -4016,6 +4074,7 @@ ngx_http_v2_process_request_body(ngx_http_request_t *r, u_char *pos,
 
             pos += n;
             size -= n;
+            bytes += n;
 
             if (size == 0 && last) {
                 rb->rest = 0;
@@ -4042,8 +4101,7 @@ ngx_http_v2_process_request_body(ngx_http_request_t *r, u_char *pos,
         }
 
         if (size == 0) {
-            clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
-            ngx_add_timer(fc->read, clcf->client_body_timeout);
+            ngx_http_request_body_timeout(r, bytes);
 
             if (!flush) {
                 ngx_post_event(fc->read, &ngx_posted_events);

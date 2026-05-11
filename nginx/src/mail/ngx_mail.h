@@ -115,9 +115,16 @@ typedef struct {
 
     ngx_msec_t              timeout;
     ngx_msec_t              resolver_timeout;
+    ngx_msec_t              lingering_time;
+    ngx_msec_t              lingering_timeout;
 
     ngx_uint_t              max_errors;
     ngx_uint_t              max_commands;
+
+    ngx_flag_t              lingering_close;
+
+    size_t                  limit_rate;
+    size_t                  limit_rate_after;
 
     ngx_str_t               server_name;
 
@@ -214,6 +221,7 @@ typedef struct {
     unsigned                protocol:3;
     unsigned                blocked:1;
     unsigned                quit:1;
+    unsigned                no_lingering_close:1;
     unsigned                quoted:1;
     unsigned                backslash:1;
     unsigned                no_sync_literal:1;
@@ -247,6 +255,11 @@ typedef struct {
     ngx_uint_t              errors;
     ngx_uint_t              commands;
     ngx_uint_t              login_attempt;
+
+    ngx_msec_t              limit_last;
+    off_t                   limit_excess;
+
+    ngx_msec_t              lingering_time;
 
     /* used to parse POP3/IMAP/SMTP command */
 
@@ -329,6 +342,9 @@ typedef struct {
 
 
 #define NGX_MAIL_PARSE_INVALID_COMMAND  20
+
+
+#define NGX_MAIL_LINGERING_BUFFER_SIZE  4096
 
 
 typedef void (*ngx_mail_init_session_pt)(ngx_mail_session_t *s,
@@ -433,7 +449,10 @@ char *ngx_mail_capabilities(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 /* STUB */
 void ngx_mail_proxy_init(ngx_mail_session_t *s, ngx_addr_t *peer);
 void ngx_mail_auth_http_init(ngx_mail_session_t *s);
+ngx_int_t ngx_mail_auth_http_header_value(ngx_mail_session_t *s,
+    ngx_str_t *name, ngx_str_t *value);
 ngx_int_t ngx_mail_realip_handler(ngx_mail_session_t *s);
+ngx_int_t ngx_mail_limit_conn_handler(ngx_mail_session_t *s);
 /**/
 
 

@@ -104,9 +104,6 @@ typedef struct {
     ngx_uint_t                       down;
 
     unsigned                         backup:1;
-
-    NGX_COMPAT_BEGIN(6)
-    NGX_COMPAT_END
 } ngx_http_upstream_server_t;
 
 
@@ -182,6 +179,7 @@ typedef struct {
     ngx_flag_t                       intercept_errors;
     ngx_flag_t                       cyclic_temp_file;
     ngx_flag_t                       force_ranges;
+    ngx_flag_t                       duplicate_chunked;
 
     ngx_path_t                      *temp_path;
 
@@ -242,9 +240,6 @@ typedef struct {
 #endif
 
     ngx_str_t                        module;
-
-    NGX_COMPAT_BEGIN(2)
-    NGX_COMPAT_END
 } ngx_http_upstream_conf_t;
 
 
@@ -403,6 +398,8 @@ struct ngx_http_upstream_s {
     unsigned                         request_body_sent:1;
     unsigned                         request_body_blocked:1;
     unsigned                         header_sent:1;
+
+    unsigned                         peer_state:3;
 };
 
 
@@ -421,6 +418,8 @@ typedef struct {
 
 ngx_int_t ngx_http_upstream_create(ngx_http_request_t *r);
 void ngx_http_upstream_init(ngx_http_request_t *r);
+ngx_int_t ngx_http_upstream_clear_headers(ngx_http_request_t *r,
+    ngx_http_upstream_t *u);
 ngx_int_t ngx_http_upstream_non_buffered_filter_init(void *data);
 ngx_int_t ngx_http_upstream_non_buffered_filter(void *data, ssize_t bytes);
 ngx_http_upstream_srv_conf_t *ngx_http_upstream_add(ngx_conf_t *cf,

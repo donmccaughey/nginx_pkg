@@ -496,6 +496,7 @@ ngx_mail_smtp_auth_state(ngx_event_t *rev)
 
             case NGX_SMTP_QUIT:
                 s->quit = 1;
+                s->no_lingering_close = 1;
                 ngx_str_set(&s->out, smtp_bye);
                 break;
 
@@ -576,6 +577,8 @@ ngx_mail_smtp_auth_state(ngx_event_t *rev)
     case NGX_MAIL_PARSE_INVALID_COMMAND:
         s->mail_state = ngx_smtp_start;
         s->state = 0;
+        s->login.len = 0;
+        s->passwd.len = 0;
         ngx_str_set(&s->out, smtp_invalid_command);
 
         /* fall through */

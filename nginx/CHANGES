@@ -1,7 +1,163 @@
 
-Changes with freenginx 1.28.0                                    22 Apr 2025
+Changes with freenginx 1.30.0                                    14 Apr 2026
 
-    *) 1.28.x stable branch.
+    *) 1.30.x stable branch.
+
+
+Changes with freenginx 1.29.7                                    31 Mar 2026
+
+    *) Feature: OpenSSL 4.0 compatibility.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       ngx_http_dav_module was used to handle COPY and MOVE methods in a
+       location with the "alias" directive.
+
+    *) Bugfix: client host name was not escaped in requests to the
+       authentication server and in the XCLIENT command if the "resolver"
+       directive was used in the SMTP proxy.
+
+    *) Bugfix: in the mail proxy module.
+
+
+Changes with freenginx 1.29.6                                    10 Mar 2026
+
+    *) Bugfix: incorrect "upstream server temporarily disabled" messages
+       might be logged when using variables in the "proxy_pass" directive.
+
+    *) Bugfix: retrying a request to the next gRPC upstream server might not
+       work correctly.
+       Thanks to David Carlier.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       ngx_http_xslt_filter_module was used.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       ngx_http_mp4_module was used.
+
+    *) Bugfix: in the ngx_http_uwsgi_module and ngx_http_scgi_module
+       modules.
+
+    *) Bugfix: in memory allocation error handling.
+
+
+Changes with freenginx 1.29.5                                    10 Feb 2026
+
+    *) Feature: optimized SSL_sendfile() usage on FreeBSD.
+       Thanks to Gleb Smirnoff.
+
+    *) Bugfix: upstream servers were not marked as failed after a response
+       with status code 500, 502, 503, 504, or 429 if the code was listed in
+       the "proxy_next_upstream" directive, but switching to the next server
+       was not possible.
+
+    *) Bugfix: the "stale-if-error" cache control extension was not applied
+       if a backend returned a response with status code 500, 502, 503, 504,
+       or 429 and the code was listed in the "proxy_next_upstream"
+       directive.
+
+    *) Bugfix: in handling of premature backend responses.
+
+
+Changes with freenginx 1.29.4                                    16 Dec 2025
+
+    *) Feature: support for GeoIP2 databases in the MaxMind DB (MMDB) format
+       in the ngx_http_geoip_module and ngx_stream_geoip_module modules; the
+       "geoip_set" directive.
+
+    *) Bugfix: disk cache size might be calculated incorrectly on the XFS
+       file system with the "largeio" mount option.
+
+    *) Bugfix: of minor potential bugs.
+
+
+Changes with freenginx 1.29.3                                    11 Nov 2025
+
+    *) Feature: loading of certificates and secret keys from hardware tokens
+       with OpenSSL STORE API.
+
+    *) Change: loading of external character entities declared in the
+       internal DTD subset is now disabled by default in the
+       ngx_http_xslt_filter_module; loading can be enabled with the
+       "xml_external_entities" directive.
+
+    *) Bugfix: the ngx_http_xslt_filter_module might try loading of external
+       character entities over the network, which might cause blocking of
+       the worker process for a significant time.
+
+    *) Bugfix: the "working_directory", "google_perftools_profiles",
+       "geoip_country", "geoip_city", "geoip_org", and "xml_entities"
+       directives incorrectly handled relative paths.
+
+
+Changes with freenginx 1.29.2                                    23 Sep 2025
+
+    *) Feature: support for the Encrypted Client Hello (ECH) extension of
+       the TLS 1.3 protocol.
+
+
+Changes with freenginx 1.29.1                                    26 Aug 2025
+
+    *) Change: now responses from proxied servers over HTTP/0.9 are rejected
+       as invalid by default; the "proxy_allow_http09" directive allows
+       processing of such responses.
+
+    *) Change: stricter syntax checks are now applied to the "Host" request
+       header line.
+
+    *) Feature: now interim 1xx responses of proxied servers are ignored.
+
+    *) Feature: certificates for IP addresses are now supported when
+       verifying backend SSL certificates.
+
+    *) Feature: the "proxy_allow_duplicate_chunked" directive.
+       Thanks to Gennady Bekasov.
+
+    *) Bugfix: when using a host name in the request line, the "_" and some
+       other characters were not allowed, as well as zone identifiers in
+       IPv6 addresses.
+
+    *) Workaround: "shutdown() failed (22: Invalid argument)" alerts might
+       appear in logs on NetBSD.
+
+    *) Bugfix: in the mail proxy module.
+
+
+Changes with freenginx 1.29.0                                    08 Jul 2025
+
+    *) Change: the "directio" directive now works when returning responses
+       from cache.
+
+    *) Change: the "limit_rate" directive now uses the leaky bucket
+       algorithm, allowing more accurate enforcement of the specified rate;
+       the "limit_rate_after" directive specifies the allowed size of
+       traffic bursts.
+
+    *) Change: the $request_time variable now remains correct on system time
+       changes.
+
+    *) Feature: the "send_min_rate" and "client_body_min_rate" directives.
+
+    *) Feature: the "limit_rate" and "limit_rate_after" directives in the
+       mail proxy module.
+
+    *) Feature: the "lingering_close", "lingering_time", and
+       "lingering_timeout" directives in the mail proxy module.
+
+    *) Feature: connection limiting in the mail proxy module.
+
+    *) Workaround: the "send_timeout" directive might not work when the
+       kernel TCP memory limit was reached on Linux.
+
+    *) Workaround: gcc 15.1 compatibility.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       "proxy_ssl_password_file" directive was used in the stream module;
+       the bug had appeared in 1.23.1.
+
+    *) Bugfix: a segmentation fault might occur in a worker process on
+       shutdown; the bug had appeared in 1.27.2.
+
+    *) Bugfix: in the "open_file_cache" directive.
 
 
 Changes with freenginx 1.27.6                                    15 Apr 2025

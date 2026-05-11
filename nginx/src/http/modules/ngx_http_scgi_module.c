@@ -489,7 +489,7 @@ ngx_http_scgi_handler(ngx_http_request_t *r)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    status = ngx_pcalloc(r->pool, sizeof(ngx_http_status_t));
+    status = ngx_palloc(r->pool, sizeof(ngx_http_status_t));
     if (status == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
@@ -985,19 +985,6 @@ ngx_http_scgi_create_request(ngx_http_request_t *r)
 static ngx_int_t
 ngx_http_scgi_reinit_request(ngx_http_request_t *r)
 {
-    ngx_http_status_t  *status;
-
-    status = ngx_http_get_module_ctx(r, ngx_http_scgi_module);
-
-    if (status == NULL) {
-        return NGX_OK;
-    }
-
-    status->code = 0;
-    status->count = 0;
-    status->start = NULL;
-    status->end = NULL;
-
     r->upstream->process_header = ngx_http_scgi_process_status_line;
     r->state = 0;
 
@@ -1030,10 +1017,6 @@ ngx_http_scgi_process_status_line(ngx_http_request_t *r)
     if (rc == NGX_ERROR) {
         u->process_header = ngx_http_scgi_process_header;
         return ngx_http_scgi_process_header(r);
-    }
-
-    if (u->state && u->state->status == 0) {
-        u->state->status = status->code;
     }
 
     u->headers_in.status_n = status->code;
@@ -1168,16 +1151,38 @@ ngx_http_scgi_process_header(ngx_http_request_t *r)
                 ngx_str_set(&u->headers_in.status_line, "200 OK");
             }
 
-            if (u->state && u->state->status == 0) {
-                u->state->status = u->headers_in.status_n;
-            }
-
         done:
 
             if (u->headers_in.status_n == NGX_HTTP_SWITCHING_PROTOCOLS
                 && r->headers_in.upgrade)
             {
                 u->upgrade = 1;
+
+            } else if (u->headers_in.status_n == NGX_HTTP_SWITCHING_PROTOCOLS
+                       || u->headers_in.status_n < NGX_HTTP_CONTINUE)
+            {
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                              "upstream sent unexpected status \"%V\"",
+                              u->headers_in.status_line.len
+                              ? &u->headers_in.status_line
+                              : &u->headers_in.status->value);
+
+                return NGX_HTTP_UPSTREAM_INVALID_HEADER;
+
+            } else if (u->headers_in.status_n < NGX_HTTP_OK) {
+
+                /* ignore unexpected 1xx responses */
+
+                ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                               "http scgi 1xx ignored");
+
+                u->process_header = ngx_http_scgi_process_status_line;
+
+                if (ngx_http_upstream_clear_headers(r, u) != NGX_OK) {
+                    return NGX_ERROR;
+                }
+
+                return ngx_http_scgi_process_status_line(r);
             }
 
             return NGX_OK;
@@ -1329,10 +1334,10 @@ ngx_http_scgi_create_loc_conf(ngx_conf_t *cf)
 
     conf->upstream.intercept_errors = NGX_CONF_UNSET;
 
-    /* "scgi_cyclic_temp_file" is disabled */
+    /* the hardcoded values */
     conf->upstream.cyclic_temp_file = 0;
-
     conf->upstream.change_buffering = 1;
+    conf->upstream.duplicate_chunked = 0;
 
     ngx_str_set(&conf->upstream.module, "scgi");
 
@@ -1916,7 +1921,12 @@ ngx_http_scgi_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
+
     clcf->handler = ngx_http_scgi_handler;
+
+    if (clcf->name.len && clcf->name.data[clcf->name.len - 1] == '/') {
+        clcf->auto_redirect = 1;
+    }
 
     value = cf->args->elts;
 
@@ -1951,10 +1961,6 @@ ngx_http_scgi_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     scf->upstream.upstream = ngx_http_upstream_add(cf, &u, 0);
     if (scf->upstream.upstream == NULL) {
         return NGX_CONF_ERROR;
-    }
-
-    if (clcf->name.len && clcf->name.data[clcf->name.len - 1] == '/') {
-        clcf->auto_redirect = 1;
     }
 
     return NGX_CONF_OK;

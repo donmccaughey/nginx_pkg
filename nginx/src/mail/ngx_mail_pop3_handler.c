@@ -192,6 +192,7 @@ ngx_mail_pop3_auth_state(ngx_event_t *rev)
 
             case NGX_POP3_QUIT:
                 s->quit = 1;
+                s->no_lingering_close = 1;
                 break;
 
             case NGX_POP3_NOOP:
@@ -222,6 +223,7 @@ ngx_mail_pop3_auth_state(ngx_event_t *rev)
 
             case NGX_POP3_QUIT:
                 s->quit = 1;
+                s->no_lingering_close = 1;
                 break;
 
             case NGX_POP3_NOOP:
@@ -288,6 +290,8 @@ ngx_mail_pop3_auth_state(ngx_event_t *rev)
     case NGX_MAIL_PARSE_INVALID_COMMAND:
         s->mail_state = ngx_pop3_start;
         s->state = 0;
+        s->login.len = 0;
+        s->passwd.len = 0;
 
         ngx_str_set(&s->out, pop3_invalid_command);
 
