@@ -4,7 +4,7 @@ freenginx 1.28.0 for macOS
 This project builds a signed and notarized macOS universal installer package
 for [`freenginx`][1], a widely used and capable HTTP and proxy server.  It
 contains the source distributions of freenginx 1.28.0, [OpenSSL 3.5.5 LTS][2],
-[PCRE2 10.47][3] and [zlib 1.3.1][4].
+[PCRE2 10.47][3] and [zlib 1.3.2][4].
 
 [1]: https://freenginx.org
 [2]: https://openssl-library.org/source/
