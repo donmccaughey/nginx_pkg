@@ -1,9 +1,9 @@
-freenginx 1.30.0 for macOS
+freenginx 1.30.1 for macOS
 ==========================
 
 This project builds a signed and notarized macOS universal installer package
 for [`freenginx`][1], a widely used and capable HTTP and proxy server.  It
-contains the source distributions of freenginx 1.30.0, [OpenSSL 3.5.7 LTS][2],
+contains the source distributions of freenginx 1.30.1, [OpenSSL 3.5.7 LTS][2],
 [PCRE2 10.47][3] and [zlib 1.3.2][4].
 
 [1]: https://freenginx.org
@@ -52,7 +52,7 @@ To build and sign the executable and installer, run:
         $ make [APP_SIGNING_ID="<cert name 1>"] [INSTALLER_SIGNING_ID="<cert name 2>"] [TMP="<build dir>"]
 
 Intermediate files are generated in the temp directory; the signed installer 
-package is written into the project root with the name `nginx1.30.0.pkg`.
+package is written into the project root with the name `nginx1.30.1.pkg`.
 To notarize the signed installer package, run:
 
         $ make notarize [NOTARIZATION_KEYCHAIN_PROFILE="<profile name>"] [TMP="<build dir>"]
@@ -62,7 +62,7 @@ success.  Check the file `$(TMP)/notarization-log.json` for detailed
 information if notarization fails.  The signed installer is stapled in place
 if notarization succeeds.  Use the command:
 
-        $ xcrun stapler validate --verbose nginx1.30.0.pkg
+        $ xcrun stapler validate --verbose nginx1.30.1.pkg
 
 to check the notarization state of the installer package.
 
