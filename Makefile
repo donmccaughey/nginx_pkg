@@ -5,7 +5,7 @@ TMP ?= $(abspath tmp)
 
 version := 1.30.1
 openssl_version := 3.5.7
-pcre2_version := 10.47
+pcre2_version := 10.49
 zlib_version := 1.4
 revision := 1
 archs := arm64 x86_64
