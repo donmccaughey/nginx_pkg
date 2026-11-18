@@ -3,7 +3,7 @@ INSTALLER_SIGNING_ID ?= Developer ID Installer: Donald McCaughey
 NOTARIZATION_KEYCHAIN_PROFILE ?= Donald McCaughey
 TMP ?= $(abspath tmp)
 
-version := 1.31.2
+version := 1.30.2
 openssl_version := 3.5.9
 pcre2_version := 10.49
 zlib_version := 1.4
