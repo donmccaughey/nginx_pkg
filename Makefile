@@ -251,8 +251,9 @@ $(nginx_installed_dirs) : $(TMP)/installed.stamp.txt
 
 # nginx
 
-pkg_nginx_dirs := $(patsubst $(TMP)/install/%,$(TMP)/pkg/%,\
-		$(nginx_installed_dirs) $(nginx_extra_dirs))
+pkg_nginx_dirs := $(patsubst \
+	$(TMP)/install/%,$(TMP)/pkg/%,$(nginx_installed_dirs) \
+)
 
 $(pkg_nginx_dirs) :
 	mkdir -p $@
