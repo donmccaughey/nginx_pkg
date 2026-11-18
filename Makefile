@@ -20,6 +20,7 @@ ver := $(version)$(rev)
 
 
 .SECONDEXPANSION :
+.DELETE_ON_ERROR :
 
 
 .PHONY : signed-package
@@ -440,7 +441,7 @@ $(TMP)/submit-log.json : $(TMP)/nginx-$(ver)-unnotarized.pkg | $$(dir $$@)
 		> $@
 
 $(TMP)/submission-id.txt : $(TMP)/submit-log.json | $$(dir $$@)
-	jq --raw-output '.id' < $< > $@
+	jq --exit-status --raw-output '.id' < $< > $@
 
 $(TMP)/notarization-log.json : $(TMP)/submission-id.txt | $$(dir $$@)
 	xcrun notarytool log "$$(<$<)" \
@@ -448,7 +449,7 @@ $(TMP)/notarization-log.json : $(TMP)/submission-id.txt | $$(dir $$@)
 		$@
 
 $(TMP)/notarized.stamp.txt : $(TMP)/notarization-log.json | $$(dir $$@)
-	test "$$(jq --raw-output '.status' < $<)" = "Accepted"
+	test "$$(jq --raw-output '.status' < $<)" = "Accepted" || { cat $<; false; }
 	date > $@
 
 nginx-$(ver).pkg : \
